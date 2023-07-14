@@ -5,6 +5,7 @@ namespace MVE
 
 void Render3DModule::OnAttach()
 {
+	materialSystem = std::make_unique<MaterialSystem>(device);
 	LoadGameObjects();
 
 	globalPool = DescriptorPool::Builder(device)
@@ -30,10 +31,10 @@ void Render3DModule::OnAttach()
 		DescriptorWriter(*globalSetLayout, *globalPool).WriteBuffer(0, &bufferInfo).Build(globalDescriptorSets[i]);
 	}
 
-	simpleRenderSystem = std::make_unique<SimpleRenderSystem>(device, renderer.GetSwapChainRenderPass(),
-															  globalSetLayout->GetDescriptorSetLayout());
-	pointLightSystem   = std::make_unique<PointLightSystem>(device, renderer.GetSwapChainRenderPass(),
-															globalSetLayout->GetDescriptorSetLayout());
+	pbrRenderSystem	 = std::make_unique<PbrRenderSystem>(device, renderer.GetSwapChainRenderPass(),
+														 globalSetLayout->GetDescriptorSetLayout(), *materialSystem);
+	pointLightSystem = std::make_unique<PointLightSystem>(device, renderer.GetSwapChainRenderPass(),
+														  globalSetLayout->GetDescriptorSetLayout());
 }
 
 void Render3DModule::OnDetach()
@@ -62,20 +63,18 @@ void Render3DModule::OnUpdate(Timestep dt)
 		int frameIndex = renderer.GetFrameIndex();
 		FrameInfo frameInfo {frameIndex, dt, commandBuffer, camera, globalDescriptorSets[frameIndex]};
 
-		{ // TEMP: globalUboBuffer
-			GlobalUbo ubo {};
-			ubo.view		= camera.GetView();
-			ubo.projection	= camera.GetProjection();
-			ubo.inverseView = camera.GetInverseView();
-			pointLightSystem->Update(frameInfo, gameObjects, ubo);
+		GlobalUbo ubo {};
+		ubo.view		= camera.GetView();
+		ubo.projection	= camera.GetProjection();
+		ubo.inverseView = camera.GetInverseView();
+		pointLightSystem->Update(frameInfo, gameObjects, ubo);
 
-			globalUboBuffers[frameIndex]->WriteToBuffer(&ubo);
-			globalUboBuffers[frameIndex]->Flush();
-		}
+		globalUboBuffers[frameIndex]->WriteToBuffer(&ubo);
+		globalUboBuffers[frameIndex]->Flush();
 
 		renderer.BeginSwapChainRenderPass(commandBuffer);
 
-		simpleRenderSystem->RenderGameObjects(frameInfo, gameObjects);
+		pbrRenderSystem->RenderGameObjects(frameInfo, gameObjects, *materialSystem);
 		pointLightSystem->Render(frameInfo, gameObjects);
 
 		renderer.EndSwapChainRenderPass(commandBuffer);
@@ -87,16 +86,34 @@ void Render3DModule::LoadGameObjects()
 {
 	std::shared_ptr model = Model::CreateModelFromFile(device, RES_DIR "models/smooth_vase.obj");
 
+	// Materials
+	auto redMatId	 = materialSystem->CreateMaterial();
+	auto& redMat	 = materialSystem->Get(redMatId);
+	redMat.albedo	 = glm::vec4(0.9f, 0.2f, 0.2f, 1.0f);
+	redMat.roughness = 0.85f;
+	redMat.metallic	 = 0.0f;
+
+	auto goldMatId	  = materialSystem->CreateMaterial();
+	auto& goldMat	  = materialSystem->Get(goldMatId);
+	goldMat.albedo	  = glm::vec4(0.944f, 0.776f, 0.373f, 1.0f);
+	goldMat.roughness = 0.3f;
+	goldMat.metallic  = 1.0f;
+
+	// Objects
 	auto object					 = GameObject::Create();
 	object.model				 = model;
 	object.transform.translation = {0.5f, 0.0f, 0.0f};
 	object.transform.scale		 = glm::vec3 {3.0f};
+	object.materialId			 = redMatId;
+
 	gameObjects.emplace(object.getId(), std::move(object));
 
 	object						 = GameObject::Create();
 	object.model				 = model;
 	object.transform.translation = {-0.5f, 0.0f, 0.0f};
 	object.transform.scale		 = glm::vec3 {1.0f, 0.3f, 0.5f} * 3.0f;
+	object.materialId			 = goldMatId;
+
 	gameObjects.emplace(object.getId(), std::move(object));
 
 	std::shared_ptr floor = Model::CreateModelFromFile(device, RES_DIR "models/quad.obj");
@@ -116,8 +133,42 @@ void Render3DModule::LoadGameObjects()
 	object.transform.translation = {1.0f, -1.0f, -1.0f};
 	gameObjects.emplace(object.getId(), std::move(object));
 
-	object						 = GameObject::CreatePointLight(0.7f, 0.15f, {0.1f, 0.5f, 0.1f});
+	object						 = GameObject::CreatePointLight(0.7f, 0.15f, {1.0f, 1.0f, 1.0f});
 	object.transform.translation = {0.0f, -0.5f, 0.0f};
 	gameObjects.emplace(object.getId(), std::move(object));
+
+	/*
+	std::shared_ptr sphere = Model::CreateModelFromFile(device, RES_DIR "models/sphere.obj");
+	int n				   = 5;
+	for (int i = 0; i < n; i++) {
+		for (int j = 0; j < n; j++) {
+			auto matId	  = materialSystem->CreateMaterial();
+			auto& mat	  = materialSystem->Get(matId);
+			mat.albedo	  = glm::vec4(0.9f, 0.2f, 0.2f, 1.0f);
+			mat.roughness = 1.0 / (n - 1) * i;
+			mat.metallic  = 1.0 / (n - 1) * j;
+
+			auto object					 = GameObject::Create();
+			object.model				 = sphere;
+			object.transform.translation = glm::vec3 {i - (n - 1) / 2.0f, j - (n - 1) / 2.0f, 0.0f};
+			object.transform.scale		 = glm::vec3 {0.1f};
+			object.materialId			 = matId;
+			gameObjects.emplace(object.getId(), std::move(object));
+		}
+	}
+
+	// Lights
+	auto object					 = GameObject::CreatePointLight(0.5f, 0.1f, {0.5f, 0.1f, 0.1f});
+	object.transform.translation = {-1.0f, -1.0f, -1.0f};
+	gameObjects.emplace(object.getId(), std::move(object));
+
+	object						 = GameObject::CreatePointLight(1.0f, 0.2f, {0.1f, 0.1f, 0.5f});
+	object.transform.translation = {1.0f, -1.0f, -1.0f};
+	gameObjects.emplace(object.getId(), std::move(object));
+
+	object						 = GameObject::CreatePointLight(0.7f, 0.15f, {1.0f, 1.0f, 1.0f});
+	object.transform.translation = {0.0f, -0.5f, 0.0f};
+	gameObjects.emplace(object.getId(), std::move(object));
+	*/
 }
 } // namespace MVE

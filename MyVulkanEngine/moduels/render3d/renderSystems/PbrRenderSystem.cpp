@@ -1,4 +1,4 @@
-#include "SimpleRenderSystem.h"
+#include "PbrRenderSystem.h"
 
 namespace MVE
 {
@@ -9,32 +9,34 @@ struct SimplePushConstantData
 	glm::mat4 normalMatrix {1.0f};
 };
 
-SimpleRenderSystem::SimpleRenderSystem(Device& device, VkRenderPass renderPass, VkDescriptorSetLayout globalSetLayout):
+PbrRenderSystem::PbrRenderSystem(Device& device, VkRenderPass renderPass, VkDescriptorSetLayout globalSetLayout,
+								 MaterialSystem& materialSystem):
 	device(device)
 {
-	CreatePipelineLayout(globalSetLayout);
+	CreatePipelineLayout(globalSetLayout, materialSystem);
 	CreatePipeline(renderPass);
 }
 
-SimpleRenderSystem::~SimpleRenderSystem()
+PbrRenderSystem::~PbrRenderSystem()
 {
 	vkDeviceWaitIdle(device.VulkanDevice());
 	vkDestroyPipelineLayout(device.VulkanDevice(), pipelineLayout, nullptr);
 }
 
-void SimpleRenderSystem::CreatePipelineLayout(VkDescriptorSetLayout globalSetLayout)
+void PbrRenderSystem::CreatePipelineLayout(VkDescriptorSetLayout globalSetLayout, MaterialSystem& materialSystem)
 {
 	VkPushConstantRange pushRange {};
 	pushRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 	pushRange.offset	 = 0;
 	pushRange.size		 = sizeof(SimplePushConstantData);
 
-	std::vector<VkDescriptorSetLayout> descripotorSetLayouts {globalSetLayout};
+	std::vector<VkDescriptorSetLayout> descriptorSetLayouts {globalSetLayout,
+															 materialSystem.GetLayout()->GetDescriptorSetLayout()};
 
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo {};
 	pipelineLayoutInfo.sType				  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-	pipelineLayoutInfo.setLayoutCount		  = descripotorSetLayouts.size();
-	pipelineLayoutInfo.pSetLayouts			  = descripotorSetLayouts.data();
+	pipelineLayoutInfo.setLayoutCount		  = descriptorSetLayouts.size();
+	pipelineLayoutInfo.pSetLayouts			  = descriptorSetLayouts.data();
 	pipelineLayoutInfo.pushConstantRangeCount = 1;
 	pipelineLayoutInfo.pPushConstantRanges	  = &pushRange;
 
@@ -42,7 +44,7 @@ void SimpleRenderSystem::CreatePipelineLayout(VkDescriptorSetLayout globalSetLay
 	MVE_ASSERT(error == VK_SUCCESS, "Failed to create pipeline labs");
 }
 
-void SimpleRenderSystem::CreatePipeline(VkRenderPass renderPass)
+void PbrRenderSystem::CreatePipeline(VkRenderPass renderPass)
 {
 	MVE_ASSERT(pipelineLayout != nullptr, "Pipeline can't be created before pipeline layout");
 
@@ -55,16 +57,21 @@ void SimpleRenderSystem::CreatePipeline(VkRenderPass renderPass)
 										   SHADER_BINARY_DIR "simple.frag.spv", pipelineConfig);
 }
 
-void SimpleRenderSystem::RenderGameObjects(FrameInfo& frameInfo, GameObject::Map& gameObjects)
+void PbrRenderSystem::RenderGameObjects(FrameInfo& frameInfo, GameObject::Map& gameObjects,
+										MaterialSystem& materialSystem)
 {
 	pipeline->Bind(frameInfo.commandBuffer);
 
 	vkCmdBindDescriptorSets(frameInfo.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,
 							&frameInfo.globalDescriptorSet, 0, nullptr);
 
+	materialSystem.FlushAll();
+
 	for (auto& [id, go] : gameObjects) {
 		if (go.model == nullptr)
 			continue;
+
+		materialSystem.Bind(go.materialId, frameInfo.commandBuffer, pipelineLayout, 1);
 
 		SimplePushConstantData push {};
 		push.modelMatrix  = go.transform.Mat4();

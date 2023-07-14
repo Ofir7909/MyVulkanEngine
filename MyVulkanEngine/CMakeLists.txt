@@ -15,14 +15,14 @@ set (ENGINE_SRC_FILES
 	"moduels/render3d/SwapChain.cpp"
 	"moduels/render3d/Model.cpp"
 	"moduels/render3d/Renderer.cpp"
-	"moduels/render3d/renderSystems/SimpleRenderSystem.cpp"
+	"moduels/render3d/renderSystems/PbrRenderSystem.cpp"
 	"moduels/render3d/Camera.cpp"
 	"core/Input.cpp"
 	"core/GameObject.cpp"
 	"moduels/render3d/Buffer.cpp"
 	"moduels/render3d/Descriptors.cpp"
 	"moduels/render3d/renderSystems/PointLightSystem.cpp"
-)
+ "moduels/render3d/MaterialSystem.cpp")
 
 set (ENGINE_HEADER_FILES
 	"core/Log.h"
@@ -38,7 +38,7 @@ set (ENGINE_HEADER_FILES
 	"moduels/render3d/Model.h"
 	"core/GameObject.h"
 	"moduels/render3d/Renderer.h"
-	"moduels/render3d/renderSystems/SimpleRenderSystem.h"
+	"moduels/render3d/renderSystems/PbrRenderSystem.h"
 	"moduels/render3d/Camera.h"
 	"core/Timestep.h"
 	"core/Input.h"
@@ -46,6 +46,7 @@ set (ENGINE_HEADER_FILES
 	"moduels/render3d/Buffer.h"
 	"moduels/render3d/FrameInfo.h"
 	"moduels/render3d/Descriptors.h"
+	"moduels/render3d/MaterialSystem.h"
 	"moduels/render3d/renderSystems/PointLightSystem.h"
 )
 

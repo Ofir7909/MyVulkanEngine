@@ -2,10 +2,11 @@
 
 #include "Descriptors.h"
 #include "Device.h"
+#include "MaterialSystem.h"
 #include "Renderer.h"
 #include "moduels/Module.h"
+#include "renderSystems/PbrRenderSystem.h"
 #include "renderSystems/PointLightSystem.h"
-#include "renderSystems/SimpleRenderSystem.h"
 
 #include "core/Application.h"
 #include "core/GameObject.h"
@@ -38,10 +39,10 @@ class Render3DModule : public Module
 	std::vector<VkDescriptorSet> globalDescriptorSets;
 	GameObject::Map gameObjects;
 
-	// TEMP
 	std::vector<std::unique_ptr<Buffer>> globalUboBuffers;
+	std::unique_ptr<MaterialSystem> materialSystem;
 
-	std::unique_ptr<SimpleRenderSystem> simpleRenderSystem;
+	std::unique_ptr<PbrRenderSystem> pbrRenderSystem;
 	std::unique_ptr<PointLightSystem> pointLightSystem;
 	Camera camera {};
 };

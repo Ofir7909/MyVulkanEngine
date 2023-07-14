@@ -1,6 +1,7 @@
 #pragma once
 
 // TODO: remove model from game object into a seperate component.
+#include "moduels/render3d/MaterialSystem.h"
 #include "moduels/render3d/Model.h"
 
 namespace MVE
@@ -56,6 +57,8 @@ class GameObject
 
   public:
 	std::shared_ptr<Model> model;
+	MaterialId materialId = 0;
+
 	glm::vec3 color {1.0f};
 	TransformComponent transform {};
 	std::unique_ptr<PointLightComponent> pointLight = nullptr;
