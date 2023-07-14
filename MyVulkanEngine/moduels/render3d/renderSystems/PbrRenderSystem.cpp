@@ -53,8 +53,8 @@ void PbrRenderSystem::CreatePipeline(VkRenderPass renderPass)
 
 	pipelineConfig.renderPass	  = renderPass;
 	pipelineConfig.pipelineLayout = pipelineLayout;
-	pipeline					  = std::make_unique<Pipeline>(device, SHADER_BINARY_DIR "simple.vert.spv",
-										   SHADER_BINARY_DIR "simple.frag.spv", pipelineConfig);
+	pipeline = std::make_unique<Pipeline>(device, SHADER_BINARY_DIR "pbr.vert.spv", SHADER_BINARY_DIR "pbr.frag.spv",
+										  pipelineConfig);
 }
 
 void PbrRenderSystem::RenderGameObjects(FrameInfo& frameInfo, GameObject::Map& gameObjects,
