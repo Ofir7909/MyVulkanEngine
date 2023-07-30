@@ -10,13 +10,21 @@ struct PointLight{
 	vec4 color;
 };
 
+struct DirectionalLight
+{
+	vec4 direction;
+	vec4 color;
+};
+
 layout(set=0, binding=0) uniform GlobalUbo{
 	mat4 view;
 	mat4 projection;
 	mat4 inverseView;
 	vec4 ambientLightColor;
 	PointLight pointLights[10];
-	int numLights;
+	DirectionalLight directionalLights[10];
+	int numPointLights;
+	int numDirectionalLights;
 } uUbo;
 
 layout(set=1, binding=0) uniform PbrMaterial
@@ -89,14 +97,41 @@ void main()
 	
 	vec3 F0 = mix(vec3(0.04), uMaterial.albedo.xyz, uMaterial.metallic);
 
-	//for each light
-	for(int i = 0; i < uUbo.numLights; i++)
+	//for each point light
+	for(int i = 0; i < uUbo.numPointLights; i++)
 	{
 		PointLight light = uUbo.pointLights[i];
 		vec3 lightColor = light.color.xyz * light.color.w;
 
 		vec3 L = light.position.xyz - vPositionWorld;
 		float attenuation = 1.0 / dot(L,L);
+		L = normalize(L);
+		vec3 H = normalize(V + L);
+
+		// PBR
+		vec3 ks = F(F0, V, H);
+		vec3 kd = (vec3(1.0) - ks) * (1.0 - uMaterial.metallic);
+
+		vec3 lambert = uMaterial.albedo.xyz / PI;
+		float alpha = uMaterial.roughness * uMaterial.roughness;
+
+		vec3 cookTorranceNom = D(alpha, N, H) * G(alpha, N, L, V) * ks;
+		float cookTorranceDenom = 4.0 * max(dot(V, N), 0.0) * max(dot(L, N), 0.0);
+		cookTorranceDenom = max(cookTorranceDenom, 0.00001);
+		vec3 cookTorrance = cookTorranceNom / cookTorranceDenom;
+
+		vec3 BRDF = kd * lambert + cookTorrance;
+		outLight += BRDF * lightColor * attenuation * max(dot(L, N), 0);
+	}
+
+	//for each directional light
+	for(int i = 0; i < uUbo.numDirectionalLights; i++)
+	{
+		DirectionalLight light = uUbo.directionalLights[i];
+		vec3 lightColor = light.color.xyz * light.color.w;
+
+		vec3 L = light.direction.xyz;
+		float attenuation = 1.0;
 		L = normalize(L);
 		vec3 H = normalize(V + L);
 

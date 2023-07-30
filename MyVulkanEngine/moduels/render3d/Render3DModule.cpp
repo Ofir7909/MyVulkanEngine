@@ -125,6 +125,7 @@ void Render3DModule::LoadGameObjects()
 	gameObjects.emplace(object.getId(), std::move(object));
 
 	// Lights
+
 	object						 = GameObject::CreatePointLight(0.5f, 0.1f, {0.5f, 0.1f, 0.1f});
 	object.transform.translation = {-1.0f, -1.0f, -1.0f};
 	gameObjects.emplace(object.getId(), std::move(object));
@@ -135,6 +136,10 @@ void Render3DModule::LoadGameObjects()
 
 	object						 = GameObject::CreatePointLight(0.7f, 0.15f, {1.0f, 1.0f, 1.0f});
 	object.transform.translation = {0.0f, -0.5f, 0.0f};
+	gameObjects.emplace(object.getId(), std::move(object));
+
+	object					  = GameObject::CreateDirectionalLight(1.5f, {1.0f, 1.0f, 1.0f});
+	object.transform.rotation = {0.7f, 0.0f, -1.5f};
 	gameObjects.emplace(object.getId(), std::move(object));
 
 	/*
@@ -151,24 +156,16 @@ void Render3DModule::LoadGameObjects()
 			auto object					 = GameObject::Create();
 			object.model				 = sphere;
 			object.transform.translation = glm::vec3 {i - (n - 1) / 2.0f, j - (n - 1) / 2.0f, 0.0f};
-			object.transform.scale		 = glm::vec3 {0.1f};
+			object.transform.scale		 = glm::vec3 {0.15f};
 			object.materialId			 = matId;
 			gameObjects.emplace(object.getId(), std::move(object));
 		}
 	}
 
 	// Lights
-	auto object					 = GameObject::CreatePointLight(0.5f, 0.1f, {0.5f, 0.1f, 0.1f});
-	object.transform.translation = {-1.0f, -1.0f, -1.0f};
-	gameObjects.emplace(object.getId(), std::move(object));
-
-	object						 = GameObject::CreatePointLight(1.0f, 0.2f, {0.1f, 0.1f, 0.5f});
-	object.transform.translation = {1.0f, -1.0f, -1.0f};
-	gameObjects.emplace(object.getId(), std::move(object));
-
-	object						 = GameObject::CreatePointLight(0.7f, 0.15f, {1.0f, 1.0f, 1.0f});
-	object.transform.translation = {0.0f, -0.5f, 0.0f};
-	gameObjects.emplace(object.getId(), std::move(object));
+	auto light				 = GameObject::CreateDirectionalLight(1.5f, {1.0f, 1.0f, 1.0f});
+	light.transform.rotation = {0.7f, 0.0f, -1.0f};
+	gameObjects.emplace(light.getId(), std::move(light));
 	*/
 }
 } // namespace MVE

@@ -21,6 +21,11 @@ struct PointLightComponent
 	float lightIntensity = 1.0f;
 };
 
+struct DirectionalLightComponent
+{
+	float lightIntensity = 1.0f;
+};
+
 class GameObject
 {
   public:
@@ -39,6 +44,13 @@ class GameObject
 		light.pointLight	  = std::make_unique<PointLightComponent>(intensity);
 		light.color			  = color;
 		light.transform.scale = glm::vec3(radius);
+		return light;
+	}
+	static GameObject CreateDirectionalLight(float intensity = 10.0f, glm::vec3 color = glm::vec3 {1.0})
+	{
+		auto light			   = Create();
+		light.directionalLight = std::make_unique<DirectionalLightComponent>(intensity);
+		light.color			   = color;
 		return light;
 	}
 
@@ -61,7 +73,8 @@ class GameObject
 
 	glm::vec3 color {1.0f};
 	TransformComponent transform {};
-	std::unique_ptr<PointLightComponent> pointLight = nullptr;
+	std::unique_ptr<PointLightComponent> pointLight				= nullptr;
+	std::unique_ptr<DirectionalLightComponent> directionalLight = nullptr;
 
   private:
 	id_t id;

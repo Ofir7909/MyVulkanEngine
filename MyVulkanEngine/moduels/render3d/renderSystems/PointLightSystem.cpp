@@ -62,14 +62,20 @@ void PointLightSystem::CreatePipeline(VkRenderPass renderPass)
 void PointLightSystem::Update(FrameInfo& frameInfo, GameObject::Map& gameObjects, GlobalUbo& ubo)
 {
 	int i = 0;
+	int j = 0;
 	for (auto& [id, go] : gameObjects) {
-		if (go.pointLight == nullptr)
-			continue;
-		ubo.pointLights[i].position = glm::vec4(go.transform.translation, 1.0f);
-		ubo.pointLights[i].color	= glm::vec4(go.color, go.pointLight->lightIntensity);
-		i++;
+		if (go.pointLight != nullptr) {
+			ubo.pointLights[i].position = glm::vec4(go.transform.translation, 1.0f);
+			ubo.pointLights[i].color	= glm::vec4(go.color, go.pointLight->lightIntensity);
+			i++;
+		} else if (go.directionalLight != nullptr) {
+			ubo.directionalLights[j].direction = glm::vec4(go.transform.Mat4()[0]);
+			ubo.directionalLights[j].color	   = glm::vec4(go.color, go.directionalLight->lightIntensity);
+			j++;
+		}
 	};
-	ubo.numLights = i;
+	ubo.numPointLights		 = i;
+	ubo.numDirectionalLights = j;
 }
 
 void PointLightSystem::Render(FrameInfo& frameInfo, GameObject::Map& gameObjects)
