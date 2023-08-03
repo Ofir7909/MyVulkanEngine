@@ -33,8 +33,9 @@ layout(push_constant) uniform Push{
 } uPush;
 
 layout(location = 0) out vec3 vColor;
-layout(location = 1) out vec3 vPositionWorld;
-layout(location = 2) out vec3 vNormalWorld;
+layout(location = 1) out vec2 vUV;
+layout(location = 2) out vec3 vPositionWorld;
+layout(location = 3) out vec3 vNormalWorld;
 
 void main()
 {
@@ -42,6 +43,7 @@ void main()
 	vec3 normalWorld = normalize(mat3(uPush.normalMatrix) * aNormal);
 
 	vColor = aColor;
+	vUV = aUV;
 	vPositionWorld = positionWorld.xyz;
 	vNormalWorld = normalWorld;
 	gl_Position = uUbo.projection * uUbo.view * positionWorld;

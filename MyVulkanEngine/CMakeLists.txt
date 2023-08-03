@@ -22,7 +22,9 @@ set (ENGINE_SRC_FILES
 	"moduels/render3d/Buffer.cpp"
 	"moduels/render3d/Descriptors.cpp"
 	"moduels/render3d/renderSystems/PointLightSystem.cpp"
- "moduels/render3d/MaterialSystem.cpp")
+	"moduels/render3d/MaterialSystem.cpp"
+	"moduels/render3d/Texture.cpp"
+)
 
 set (ENGINE_HEADER_FILES
 	"core/Log.h"
@@ -46,8 +48,9 @@ set (ENGINE_HEADER_FILES
 	"moduels/render3d/Buffer.h"
 	"moduels/render3d/FrameInfo.h"
 	"moduels/render3d/Descriptors.h"
-	"moduels/render3d/MaterialSystem.h"
 	"moduels/render3d/renderSystems/PointLightSystem.h"
+	"moduels/render3d/MaterialSystem.h"
+	"moduels/render3d/Texture.h"
 )
 
 add_executable (VulanEngine ${ENGINE_SRC_FILES} ${ENGINE_HEADER_FILES})

@@ -1,8 +1,9 @@
 #version 450
 
 layout(location = 0) in vec3 vColor;
-layout(location = 1) in vec3 vPositionWorld;
-layout(location = 2) in vec3 vNormalWorld;
+layout(location = 1) in vec2 vUV;
+layout(location = 2) in vec3 vPositionWorld;
+layout(location = 3) in vec3 vNormalWorld;
 
 
 struct PointLight{
@@ -27,13 +28,19 @@ layout(set=0, binding=0) uniform GlobalUbo{
 	int numDirectionalLights;
 } uUbo;
 
-layout(set=1, binding=0) uniform PbrMaterial
+layout(set=1, binding=0) uniform MaterialParams
 {
 	vec4 albedo;
 	vec4 emission;
+	vec2 uvScale;
 	float roughness;
 	float metallic;
-} uMaterial;
+} uMaterialParams;
+
+layout(set=1, binding=1) uniform sampler2D albedoTexture;
+layout(set=1, binding=2) uniform sampler2D armTexture;
+layout(set=1, binding=3) uniform sampler2D normalTexture;
+
 
 layout(push_constant) uniform Push{
 	mat4 modelMatrix;
@@ -89,13 +96,19 @@ void main()
 {
 	vec3 cameraPosWorld = uUbo.inverseView[3].xyz;
 
+	vec2 scaledUV = vUV * uMaterialParams.uvScale;
+	vec3 albedo = uMaterialParams.albedo.xyz * texture(albedoTexture, scaledUV).xyz;
+	float ao = uMaterialParams.roughness * texture(armTexture, scaledUV).r;
+	float roughness = uMaterialParams.roughness * texture(armTexture, scaledUV).g;
+	float metallic = uMaterialParams.metallic * texture(armTexture, scaledUV).b;
+
 	vec3 N = normalize(vNormalWorld);
 	vec3 V = normalize(cameraPosWorld - vPositionWorld);
 
-	vec3 ambientLight = uUbo.ambientLightColor.xyz * uUbo.ambientLightColor.w;
+	vec3 ambientLight = uUbo.ambientLightColor.xyz * uUbo.ambientLightColor.w * ao;
 	vec3 outLight = ambientLight;
 	
-	vec3 F0 = mix(vec3(0.04), uMaterial.albedo.xyz, uMaterial.metallic);
+	vec3 F0 = mix(vec3(0.04), albedo, metallic);
 
 	//for each point light
 	for(int i = 0; i < uUbo.numPointLights; i++)
@@ -110,10 +123,10 @@ void main()
 
 		// PBR
 		vec3 ks = F(F0, V, H);
-		vec3 kd = (vec3(1.0) - ks) * (1.0 - uMaterial.metallic);
+		vec3 kd = (vec3(1.0) - ks) * (1.0 - metallic);
 
-		vec3 lambert = uMaterial.albedo.xyz / PI;
-		float alpha = uMaterial.roughness * uMaterial.roughness;
+		vec3 lambert = albedo / PI;
+		float alpha = roughness * roughness;
 
 		vec3 cookTorranceNom = D(alpha, N, H) * G(alpha, N, L, V) * ks;
 		float cookTorranceDenom = 4.0 * max(dot(V, N), 0.0) * max(dot(L, N), 0.0);
@@ -137,10 +150,10 @@ void main()
 
 		// PBR
 		vec3 ks = F(F0, V, H);
-		vec3 kd = (vec3(1.0) - ks) * (1.0 - uMaterial.metallic);
+		vec3 kd = (vec3(1.0) - ks) * (1.0 - metallic);
 
-		vec3 lambert = uMaterial.albedo.xyz / PI;
-		float alpha = uMaterial.roughness * uMaterial.roughness;
+		vec3 lambert = albedo / PI;
+		float alpha = roughness * roughness;
 
 		vec3 cookTorranceNom = D(alpha, N, H) * G(alpha, N, L, V) * ks;
 		float cookTorranceDenom = 4.0 * max(dot(V, N), 0.0) * max(dot(L, N), 0.0);
@@ -151,7 +164,9 @@ void main()
 		outLight += BRDF * lightColor * attenuation * max(dot(L, N), 0);
 	}
 
-	outLight += uMaterial.emission.xyz + uMaterial.emission.w;
+	outLight += uMaterialParams.emission.xyz + uMaterialParams.emission.w;
 
 	oColor = vec4(vColor * outLight, 1.0);
+
+	//oColor = vec4(roughness);
 }

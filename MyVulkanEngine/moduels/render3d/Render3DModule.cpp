@@ -99,6 +99,13 @@ void Render3DModule::LoadGameObjects()
 	goldMat.params.roughness = 0.3f;
 	goldMat.params.metallic	 = 1.0f;
 
+	auto floorMatId			 = materialSystem->CreateMaterial();
+	auto& floorMat			 = materialSystem->Get(floorMatId);
+	floorMat.params.uvScale	 = glm::vec2 {5.0f};
+	floorMat.textures.albedo = Texture::Load(device, RES_DIR "textures/floor/slate_floor_diff_2k.jpg");
+	floorMat.textures.arm	 = Texture::Load(device, RES_DIR "textures/floor/slate_floor_arm_2k.jpg");
+	floorMat.textures.normal = Texture::Load(device, RES_DIR "textures/floor/slate_floor_nor_gl_2k.jpg");
+
 	// Objects
 	auto object					 = GameObject::Create();
 	object.model				 = model;
@@ -122,6 +129,7 @@ void Render3DModule::LoadGameObjects()
 	object.model				 = floor;
 	object.transform.translation = {0.0f, 0.0f, 0.0f};
 	object.transform.scale		 = glm::vec3 {5.0f};
+	object.materialId			 = floorMatId;
 	gameObjects.emplace(object.getId(), std::move(object));
 
 	// Lights

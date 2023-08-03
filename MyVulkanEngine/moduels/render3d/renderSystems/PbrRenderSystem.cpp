@@ -65,13 +65,13 @@ void PbrRenderSystem::RenderGameObjects(FrameInfo& frameInfo, GameObject::Map& g
 	vkCmdBindDescriptorSets(frameInfo.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,
 							&frameInfo.globalDescriptorSet, 0, nullptr);
 
-	materialSystem.FlushAll();
+	materialSystem.FlushAll(frameInfo.frameIndex);
 
 	for (auto& [id, go] : gameObjects) {
 		if (go.model == nullptr)
 			continue;
 
-		materialSystem.Bind(go.materialId, frameInfo.commandBuffer, pipelineLayout, 1);
+		materialSystem.Bind(go.materialId, frameInfo.commandBuffer, pipelineLayout, 1, frameInfo.frameIndex);
 
 		SimplePushConstantData push {};
 		push.modelMatrix  = go.transform.Mat4();
