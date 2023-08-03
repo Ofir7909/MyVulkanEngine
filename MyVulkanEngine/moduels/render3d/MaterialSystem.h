@@ -5,26 +5,26 @@
 
 namespace MVE
 {
-struct PbrMaterial
-{
-	glm::vec4 albedo   = glm::vec4 {1.0f};
-	glm::vec4 emission = glm::vec4 {0.0f};
-	float roughness	   = 0.5f;
-	float metallic	   = 0.0f;
-};
-
 using MaterialId = uint32_t;
 
 class MaterialSystem
 {
   public:
-	struct MaterialInfo
+	struct Params
 	{
-		PbrMaterial material {};
+		glm::vec4 albedo   = glm::vec4 {1.0f};
+		glm::vec4 emission = glm::vec4 {0.0f};
+		float roughness	   = 0.5f;
+		float metallic	   = 0.0f;
+	};
+
+	struct Material
+	{
+		Params params {};
 		VkDescriptorSet descriptorSet {};
 		std::unique_ptr<Buffer> buffer {};
 	};
-	using MaterialsMap = std::unordered_map<MaterialId, MaterialInfo>;
+	using MaterialsMap = std::unordered_map<MaterialId, Material>;
 
   public:
 	MaterialSystem(Device& device);
@@ -32,7 +32,7 @@ class MaterialSystem
 
 	MaterialId CreateMaterial();
 
-	PbrMaterial& Get(MaterialId id) { return materials.at(id).material; }
+	Material& Get(MaterialId id) { return materials.at(id); }
 	void FlushMaterial(MaterialId id);
 	void FlushAll();
 	void Bind(MaterialId id, VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, int set) const;

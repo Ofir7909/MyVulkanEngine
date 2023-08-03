@@ -22,9 +22,9 @@ MaterialId MaterialSystem::CreateMaterial()
 	static MaterialId nextId = 0;
 
 	auto id = nextId++;
-	materials.emplace(id, MaterialInfo {});
+	materials.emplace(id, Material {});
 
-	materials[id].buffer = std::make_unique<Buffer>(device, sizeof(PbrMaterial), 1, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+	materials[id].buffer = std::make_unique<Buffer>(device, sizeof(Params), 1, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 													VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
 													device.properties.limits.minUniformBufferOffsetAlignment);
 	materials[id].buffer->Map();
@@ -38,7 +38,7 @@ MaterialId MaterialSystem::CreateMaterial()
 void MaterialSystem::FlushMaterial(MaterialId id)
 {
 	auto& mat = materials[id];
-	mat.buffer->WriteToBuffer(&mat.material);
+	mat.buffer->WriteToBuffer(&mat.params);
 	mat.buffer->Flush();
 }
 

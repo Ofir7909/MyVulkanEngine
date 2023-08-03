@@ -87,17 +87,17 @@ void Render3DModule::LoadGameObjects()
 	std::shared_ptr model = Model::CreateModelFromFile(device, RES_DIR "models/smooth_vase.obj");
 
 	// Materials
-	auto redMatId	 = materialSystem->CreateMaterial();
-	auto& redMat	 = materialSystem->Get(redMatId);
-	redMat.albedo	 = glm::vec4(0.9f, 0.2f, 0.2f, 1.0f);
-	redMat.roughness = 0.85f;
-	redMat.metallic	 = 0.0f;
+	auto redMatId			= materialSystem->CreateMaterial();
+	auto& redMat			= materialSystem->Get(redMatId);
+	redMat.params.albedo	= glm::vec4(0.9f, 0.2f, 0.2f, 1.0f);
+	redMat.params.roughness = 0.85f;
+	redMat.params.metallic	= 0.0f;
 
-	auto goldMatId	  = materialSystem->CreateMaterial();
-	auto& goldMat	  = materialSystem->Get(goldMatId);
-	goldMat.albedo	  = glm::vec4(0.944f, 0.776f, 0.373f, 1.0f);
-	goldMat.roughness = 0.3f;
-	goldMat.metallic  = 1.0f;
+	auto goldMatId			 = materialSystem->CreateMaterial();
+	auto& goldMat			 = materialSystem->Get(goldMatId);
+	goldMat.params.albedo	 = glm::vec4(0.944f, 0.776f, 0.373f, 1.0f);
+	goldMat.params.roughness = 0.3f;
+	goldMat.params.metallic	 = 1.0f;
 
 	// Objects
 	auto object					 = GameObject::Create();
