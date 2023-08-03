@@ -7,9 +7,39 @@ namespace MVE
 class Texture
 {
   public:
-	static std::unique_ptr<Texture> Load(Device& device, const std::string& filepath);
-	static VkImageView CreateImageView(Device& device, VkImage image, VkFormat format);
-	static VkSampler createSampler(Device& device);
+	class Builder
+	{
+	  public:
+		Builder(Device& device, const std::string& filepath): device_ {device}, path_ {filepath} {}
+
+		Builder format(VkFormat format)
+		{
+			format_ = format;
+			return *this;
+		}
+		Builder filter(VkFilter filter)
+		{
+			minMagFilter_ = filter;
+			return *this;
+		}
+		Builder addressMode(VkSamplerAddressMode mode)
+		{
+			addressMode_ = mode;
+			return *this;
+		}
+		std::unique_ptr<Texture> build();
+
+	  private:
+		VkImageView createImageView(VkImage image);
+		VkSampler createSampler();
+
+	  private:
+		Device& device_;
+		std::string path_;
+		VkFormat format_				  = VK_FORMAT_R8G8B8A8_SRGB;
+		VkFilter minMagFilter_			  = VK_FILTER_LINEAR;
+		VkSamplerAddressMode addressMode_ = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+	};
 
   public:
 	Texture(Device& device): device(device) {}

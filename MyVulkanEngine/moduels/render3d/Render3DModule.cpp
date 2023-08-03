@@ -102,9 +102,14 @@ void Render3DModule::LoadGameObjects()
 	auto floorMatId			 = materialSystem->CreateMaterial();
 	auto& floorMat			 = materialSystem->Get(floorMatId);
 	floorMat.params.uvScale	 = glm::vec2 {5.0f};
-	floorMat.textures.albedo = Texture::Load(device, RES_DIR "textures/floor/slate_floor_diff_2k.jpg");
-	floorMat.textures.arm	 = Texture::Load(device, RES_DIR "textures/floor/slate_floor_arm_2k.jpg");
-	floorMat.textures.normal = Texture::Load(device, RES_DIR "textures/floor/slate_floor_nor_gl_2k.jpg");
+	floorMat.textures.albedo = Texture::Builder(device, RES_DIR "textures/floor/slate_floor_diff_2k.jpg").build();
+	floorMat.textures.arm	 = Texture::Builder(device, RES_DIR "textures/floor/slate_floor_arm_2k.jpg")
+								.format(VK_FORMAT_R8G8B8A8_UNORM)
+								.build();
+	floorMat.textures.normal = Texture::Builder(device, RES_DIR "textures/floor/slate_floor_nor_gl_2k.jpg")
+								   .format(VK_FORMAT_R8G8B8A8_UNORM)
+								   .build();
+	;
 
 	// Objects
 	auto object					 = GameObject::Create();

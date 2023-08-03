@@ -23,9 +23,10 @@ MaterialSystem::MaterialSystem(Device& device): device(device)
 					.AddBinding(3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_ALL_GRAPHICS)
 					.Build();
 
-	defaultTextureAlbedo = Texture::Load(device, RES_DIR "textures/white.jpg");
-	defaultTextureArm	 = Texture::Load(device, RES_DIR "textures/white.jpg");
-	defaultTextureNormal = Texture::Load(device, RES_DIR "textures/normal.jpg");
+	defaultTextureAlbedo = Texture::Builder(device, RES_DIR "textures/white.jpg").build();
+	defaultTextureArm = Texture::Builder(device, RES_DIR "textures/white.jpg").format(VK_FORMAT_R8G8B8A8_UNORM).build();
+	defaultTextureNormal =
+		Texture::Builder(device, RES_DIR "textures/normal.jpg").format(VK_FORMAT_R8G8B8A8_UNORM).build();
 
 	// Default material
 	defaultMaterialId = CreateMaterial();
