@@ -13,6 +13,8 @@ class Model
 		glm::vec3 position {};
 		glm::vec3 color {1.0f};
 		glm::vec3 normal {};
+		glm::vec3 tanget {};
+		glm::vec3 bitanget {};
 		glm::vec2 uv {};
 
 		static std::vector<VkVertexInputBindingDescription> getBindingDescriptions();

@@ -101,7 +101,9 @@ std::vector<VkVertexInputAttributeDescription> Model::Vertex::getAttributeDescri
 	attributeDescriptions.push_back({0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, position)});
 	attributeDescriptions.push_back({1, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, color)});
 	attributeDescriptions.push_back({2, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, normal)});
-	attributeDescriptions.push_back({3, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, uv)});
+	attributeDescriptions.push_back({3, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, tanget)});
+	attributeDescriptions.push_back({4, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, bitanget)});
+	attributeDescriptions.push_back({5, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, uv)});
 
 	return attributeDescriptions;
 }
@@ -113,7 +115,7 @@ void Model::Builder::LoadModel(const std::string& filepath)
 
 	Assimp::Importer importer {};
 	auto scene = importer.ReadFile(filepath, aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_FlipUVs |
-												 aiProcess_JoinIdenticalVertices);
+												 aiProcess_JoinIdenticalVertices | aiProcess_CalcTangentSpace);
 	MVE_ASSERT(scene, "Failed to load model from {}", filepath);
 
 	for (int i = 0; i < scene->mNumMeshes; i++) {
@@ -125,6 +127,9 @@ void Model::Builder::LoadModel(const std::string& filepath)
 			Vertex vertex {};
 			vertex.position = {mesh->mVertices[j].x, mesh->mVertices[j].y, mesh->mVertices[j].z};
 			vertex.normal	= {mesh->mNormals[j].x, mesh->mNormals[j].y, mesh->mNormals[j].z};
+			vertex.tanget	= {mesh->mTangents[j].x, mesh->mTangents[j].y, mesh->mTangents[j].z};
+			vertex.bitanget = {mesh->mBitangents[j].x, mesh->mBitangents[j].y, mesh->mBitangents[j].z};
+
 			if (mesh->mColors[0])
 				vertex.color = {mesh->mColors[0][j].r, mesh->mColors[0][j].g, mesh->mColors[0][j].b};
 			if (mesh->mTextureCoords[0])

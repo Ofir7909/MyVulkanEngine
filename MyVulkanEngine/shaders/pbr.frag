@@ -3,8 +3,7 @@
 layout(location = 0) in vec3 vColor;
 layout(location = 1) in vec2 vUV;
 layout(location = 2) in vec3 vPositionWorld;
-layout(location = 3) in vec3 vNormalWorld;
-
+layout(location = 3) in mat3 vTBN;
 
 struct PointLight{
 	vec4 position;
@@ -97,12 +96,13 @@ void main()
 	vec3 cameraPosWorld = uUbo.inverseView[3].xyz;
 
 	vec2 scaledUV = vUV * uMaterialParams.uvScale;
-	vec3 albedo = uMaterialParams.albedo.xyz * texture(albedoTexture, scaledUV).xyz;
+	vec3 albedo = uMaterialParams.albedo.rgb * texture(albedoTexture, scaledUV).rgb;
 	float ao = uMaterialParams.roughness * texture(armTexture, scaledUV).r;
 	float roughness = uMaterialParams.roughness * texture(armTexture, scaledUV).g;
 	float metallic = uMaterialParams.metallic * texture(armTexture, scaledUV).b;
+	vec3 normalTexture = texture(normalTexture, scaledUV).xyz * 2.0 - 1.0;
 
-	vec3 N = normalize(vNormalWorld);
+	vec3 N = normalize(vTBN * normalTexture);
 	vec3 V = normalize(cameraPosWorld - vPositionWorld);
 
 	vec3 ambientLight = uUbo.ambientLightColor.xyz * uUbo.ambientLightColor.w * ao;
@@ -167,6 +167,4 @@ void main()
 	outLight += uMaterialParams.emission.xyz + uMaterialParams.emission.w;
 
 	oColor = vec4(vColor * outLight, 1.0);
-
-	//oColor = vec4(roughness);
 }
