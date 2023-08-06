@@ -11,6 +11,7 @@ void Render3DModule::OnAttach()
 	globalPool = DescriptorPool::Builder(device)
 					 .SetMaxSets(SwapChain::MAX_FRAMES_IN_FLIGHT)
 					 .AddPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, SwapChain::MAX_FRAMES_IN_FLIGHT)
+					 .AddPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, SwapChain::MAX_FRAMES_IN_FLIGHT)
 					 .Build();
 
 	globalUboBuffers.resize(SwapChain::MAX_FRAMES_IN_FLIGHT);
@@ -23,18 +24,25 @@ void Render3DModule::OnAttach()
 
 	globalSetLayout = DescriptorSetLayout::Builder(device)
 						  .AddBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL_GRAPHICS)
+						  .AddBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_ALL_GRAPHICS)
 						  .Build();
 
+	auto skyboxImageInfo = skyboxCubemap->ImageInfo();
 	globalDescriptorSets.resize(SwapChain::MAX_FRAMES_IN_FLIGHT);
 	for (int i = 0; i < globalDescriptorSets.size(); i++) {
 		auto bufferInfo = globalUboBuffers[i]->DescriptorInfo();
-		DescriptorWriter(*globalSetLayout, *globalPool).WriteBuffer(0, &bufferInfo).Build(globalDescriptorSets[i]);
+		DescriptorWriter(*globalSetLayout, *globalPool)
+			.WriteBuffer(0, &bufferInfo)
+			.WriteImage(1, &skyboxImageInfo)
+			.Build(globalDescriptorSets[i]);
 	}
 
 	pbrRenderSystem	 = std::make_unique<PbrRenderSystem>(device, renderer.GetSwapChainRenderPass(),
 														 globalSetLayout->GetDescriptorSetLayout(), *materialSystem);
 	pointLightSystem = std::make_unique<PointLightSystem>(device, renderer.GetSwapChainRenderPass(),
 														  globalSetLayout->GetDescriptorSetLayout());
+	skyboxSystem	 = std::make_unique<SkyboxSystem>(device, renderer.GetSwapChainRenderPass(),
+												  globalSetLayout->GetDescriptorSetLayout());
 }
 
 void Render3DModule::OnDetach()
@@ -44,7 +52,7 @@ void Render3DModule::OnDetach()
 void Render3DModule::OnUpdate(Timestep dt)
 {
 	float aspect = renderer.GetAspectRatio();
-	camera.SetPerspectiveProjection(glm::radians(50.0f), aspect, 0.1f, 10.0f);
+	camera.SetPerspectiveProjection(glm::radians(65.0f), aspect, 0.1f, 100.0f);
 
 	{ // TEMP: Camera controller
 		static GameObject cameraTransform = GameObject::Create();
@@ -75,6 +83,7 @@ void Render3DModule::OnUpdate(Timestep dt)
 		renderer.BeginSwapChainRenderPass(commandBuffer);
 
 		pbrRenderSystem->RenderGameObjects(frameInfo, gameObjects, *materialSystem);
+		skyboxSystem->Render(frameInfo, *skyboxCubemap);
 		pointLightSystem->Render(frameInfo, gameObjects);
 
 		renderer.EndSwapChainRenderPass(commandBuffer);
@@ -84,6 +93,8 @@ void Render3DModule::OnUpdate(Timestep dt)
 
 void Render3DModule::LoadGameObjects()
 {
+	skyboxCubemap = std::make_shared<Cubemap>(device, RES_DIR "cubemaps/skies/", "png");
+
 	std::shared_ptr model = Model::CreateModelFromFile(device, RES_DIR "models/smooth_vase.obj");
 
 	// Materials
@@ -99,14 +110,17 @@ void Render3DModule::LoadGameObjects()
 	goldMat.params.roughness = 0.3f;
 	goldMat.params.metallic	 = 1.0f;
 
-	auto floorMatId			 = materialSystem->CreateMaterial();
-	auto& floorMat			 = materialSystem->Get(floorMatId);
-	floorMat.params.uvScale	 = glm::vec2 {5.0f};
-	floorMat.textures.albedo = Texture::Builder(device, RES_DIR "textures/floor/slate_floor_diff_2k.jpg").build();
-	floorMat.textures.arm	 = Texture::Builder(device, RES_DIR "textures/floor/slate_floor_arm_2k.jpg")
+	auto floorMatId			= materialSystem->CreateMaterial();
+	auto& floorMat			= materialSystem->Get(floorMatId);
+	floorMat.params.uvScale = glm::vec2 {5.0f};
+	floorMat.textures.albedo =
+		Texture::Builder(device).addLayer(RES_DIR "textures/floor/slate_floor_diff_2k.jpg").build();
+	floorMat.textures.arm = Texture::Builder(device)
+								.addLayer(RES_DIR "textures/floor/slate_floor_arm_2k.jpg")
 								.format(VK_FORMAT_R8G8B8A8_UNORM)
 								.build();
-	floorMat.textures.normal = Texture::Builder(device, RES_DIR "textures/floor/slate_floor_nor_gl_2k.jpg")
+	floorMat.textures.normal = Texture::Builder(device)
+								   .addLayer(RES_DIR "textures/floor/slate_floor_nor_gl_2k.jpg")
 								   .format(VK_FORMAT_R8G8B8A8_UNORM)
 								   .build();
 	;
@@ -160,11 +174,11 @@ void Render3DModule::LoadGameObjects()
 	int n				   = 5;
 	for (int i = 0; i < n; i++) {
 		for (int j = 0; j < n; j++) {
-			auto matId	  = materialSystem->CreateMaterial();
-			auto& mat	  = materialSystem->Get(matId);
-			mat.albedo	  = glm::vec4(0.9f, 0.2f, 0.2f, 1.0f);
-			mat.roughness = 1.0 / (n - 1) * i;
-			mat.metallic  = 1.0 / (n - 1) * j;
+			auto matId			 = materialSystem->CreateMaterial();
+			auto& mat			 = materialSystem->Get(matId);
+			mat.params.albedo	 = glm::vec4(0.9f, 0.2f, 0.2f, 1.0f);
+			mat.params.roughness = 1.0 / (n - 1) * i;
+			mat.params.metallic	 = 1.0 / (n - 1) * j;
 
 			auto object					 = GameObject::Create();
 			object.model				 = sphere;

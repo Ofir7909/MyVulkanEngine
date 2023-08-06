@@ -10,7 +10,9 @@ class Texture
 	class Builder
 	{
 	  public:
-		Builder(Device& device, const std::string& filepath): device_ {device}, path_ {filepath} {}
+		Builder(Device& device): device_ {device} {}
+
+		Builder addLayer(const std::string& filepath);
 
 		Builder format(VkFormat format)
 		{
@@ -27,6 +29,12 @@ class Texture
 			addressMode_ = mode;
 			return *this;
 		}
+		Builder isCubemap(bool value)
+		{
+			isCubemap_ = value;
+			return *this;
+		}
+
 		std::unique_ptr<Texture> build();
 
 	  private:
@@ -35,10 +43,11 @@ class Texture
 
 	  private:
 		Device& device_;
-		std::string path_;
+		std::vector<std::string> layers_;
 		VkFormat format_				  = VK_FORMAT_R8G8B8A8_SRGB;
 		VkFilter minMagFilter_			  = VK_FILTER_LINEAR;
 		VkSamplerAddressMode addressMode_ = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		bool isCubemap_					  = false;
 	};
 
   public:
@@ -50,7 +59,7 @@ class Texture
 	VkDescriptorImageInfo ImageInfo() const;
 
   private:
-	void TransitionImageLayout(VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
+	void TransitionImageLayout(VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t layerCount);
 
   private:
 	Device& device;

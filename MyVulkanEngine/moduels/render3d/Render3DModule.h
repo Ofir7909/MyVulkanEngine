@@ -7,6 +7,7 @@
 #include "moduels/Module.h"
 #include "renderSystems/PbrRenderSystem.h"
 #include "renderSystems/PointLightSystem.h"
+#include "renderSystems/SkyboxSystem.h"
 
 #include "core/Application.h"
 #include "core/GameObject.h"
@@ -41,9 +42,11 @@ class Render3DModule : public Module
 
 	std::vector<std::unique_ptr<Buffer>> globalUboBuffers;
 	std::unique_ptr<MaterialSystem> materialSystem;
+	std::shared_ptr<Cubemap> skyboxCubemap;
 
 	std::unique_ptr<PbrRenderSystem> pbrRenderSystem;
 	std::unique_ptr<PointLightSystem> pointLightSystem;
+	std::unique_ptr<SkyboxSystem> skyboxSystem;
 	Camera camera {};
 };
 } // namespace MVE
