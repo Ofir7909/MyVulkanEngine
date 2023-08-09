@@ -1,5 +1,7 @@
 #version 450
 
+#define MAX_REFLECTION_LOD 10.0
+
 layout(location = 0) in vec3 vColor;
 layout(location = 1) in vec2 vUV;
 layout(location = 2) in vec3 vPositionWorld;
@@ -26,6 +28,8 @@ layout(set=0, binding=0) uniform GlobalUbo{
 	int numPointLights;
 	int numDirectionalLights;
 } uUbo;
+
+layout(set=0, binding=1) uniform samplerCube uSkybox;
 
 layout(set=1, binding=0) uniform MaterialParams
 {
@@ -67,9 +71,8 @@ float D(float alpha, vec3 N, vec3 H)
 }
 
 // Schlick-Beckmann Geometry shadowing function
-float G1(float alpha, vec3 N, vec3 X)
+float G1(float k, vec3 N, vec3 X)
 {
-	float k = alpha / 2;
 	float nDotX = max(dot(N, X), 0.0);
 	float denom = nDotX * (1-k) + k;
 	denom = max(denom, 0.00001);
@@ -78,9 +81,15 @@ float G1(float alpha, vec3 N, vec3 X)
 }
 
 // Smith model
-float G(float alpha, vec3 N, vec3 L, vec3 V)
+float G_ibl(float roughness, vec3 N, vec3 L, vec3 V)
 {
-	return G1(alpha, N, L) * G1(alpha, N, V);
+	float k = roughness * roughness / 2.0;
+	return G1(k, N, L) * G1(k, N, V);
+}
+float G_direct(float roughness, vec3 N, vec3 L, vec3 V)
+{
+	float k = (roughness + 1) * (roughness + 1) / 8.0;
+	return G1(k, N, L) * G1(k, N, V);
 }
 
 // Fresnel-Schlick Function
@@ -105,10 +114,13 @@ void main()
 	vec3 N = normalize(vTBN * normalTexture);
 	vec3 V = normalize(cameraPosWorld - vPositionWorld);
 
-	vec3 ambientLight = uUbo.ambientLightColor.xyz * uUbo.ambientLightColor.w * ao;
-	vec3 outLight = ambientLight;
+	//vec3 ambientLight = uUbo.ambientLightColor.xyz * uUbo.ambientLightColor.w * ao;
+	vec3 ambientLight = textureLod(uSkybox, N, MAX_REFLECTION_LOD).rgb * ao;
+	vec3 outLight = ambientLight * albedo;
 	
 	vec3 F0 = mix(vec3(0.04), albedo, metallic);
+
+	vec3 R = reflect(-V, N);
 
 	//for each point light
 	for(int i = 0; i < uUbo.numPointLights; i++)
@@ -128,7 +140,7 @@ void main()
 		vec3 lambert = albedo / PI;
 		float alpha = roughness * roughness;
 
-		vec3 cookTorranceNom = D(alpha, N, H) * G(alpha, N, L, V) * ks;
+		vec3 cookTorranceNom = D(alpha, N, H) * G_direct(roughness, N, L, V) * ks;
 		float cookTorranceDenom = 4.0 * max(dot(V, N), 0.0) * max(dot(L, N), 0.0);
 		cookTorranceDenom = max(cookTorranceDenom, 0.00001);
 		vec3 cookTorrance = cookTorranceNom / cookTorranceDenom;
@@ -155,7 +167,7 @@ void main()
 		vec3 lambert = albedo / PI;
 		float alpha = roughness * roughness;
 
-		vec3 cookTorranceNom = D(alpha, N, H) * G(alpha, N, L, V) * ks;
+		vec3 cookTorranceNom = D(alpha, N, H) * G_direct(roughness, N, L, V) * ks;
 		float cookTorranceDenom = 4.0 * max(dot(V, N), 0.0) * max(dot(L, N), 0.0);
 		cookTorranceDenom = max(cookTorranceDenom, 0.00001);
 		vec3 cookTorrance = cookTorranceNom / cookTorranceDenom;
@@ -166,5 +178,8 @@ void main()
 
 	outLight += uMaterialParams.emission.xyz + uMaterialParams.emission.w;
 
-	oColor = vec4(vColor * outLight, 1.0);
+	// HDR Mapping
+	outLight = outLight / (outLight + vec3(1.0));
+
+	oColor = vec4(outLight, 1.0);
 }

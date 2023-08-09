@@ -32,5 +32,6 @@ const float PI = 3.14159265358979;
 
 void main()
 {
+	//oColor = vec4(textureLod(uSkybox, vUVW, 0.0));
 	oColor = vec4(texture(uSkybox, vUVW));
 }

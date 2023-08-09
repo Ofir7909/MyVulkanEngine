@@ -43,6 +43,7 @@ class Device
 
 	VkCommandPool GetCommandPool() { return commandPool; }
 	VkDevice VulkanDevice() { return device_; }
+	VkPhysicalDevice PhysicalDevice() { return physicalDevice; }
 	VkSurfaceKHR Surface() { return surface_; }
 	VkQueue GraphicsQueue() { return graphicsQueue_; }
 	VkQueue PresentQueue() { return presentQueue_; }

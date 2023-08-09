@@ -10,7 +10,10 @@ void MVE::Cubemap::CreateTexture(const std::string& folderPath, const std::strin
 	std::string names[] = {"right", "left", "bottom", "top", "front", "back"};
 
 	Texture::Builder builder(device);
-	builder.isCubemap(true).format(VK_FORMAT_R32G32B32A32_UINT).addressMode(VK_SAMPLER_ADDRESS_MODE_REPEAT);
+	builder.isCubemap(true)
+		.format(VK_FORMAT_R8G8B8A8_SRGB)
+		.addressMode(VK_SAMPLER_ADDRESS_MODE_REPEAT)
+		.useMipmaps(true);
 
 	for (int i = 0; i < 6; i++) { builder.addLayer(folderPath + names[i] + "." + extension); }
 

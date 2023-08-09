@@ -93,106 +93,109 @@ void Render3DModule::OnUpdate(Timestep dt)
 
 void Render3DModule::LoadGameObjects()
 {
-	skyboxCubemap = std::make_shared<Cubemap>(device, RES_DIR "cubemaps/skies/", "png");
+	auto vaseSceneSetup = [&]() {
+		std::shared_ptr model = Model::CreateModelFromFile(device, RES_DIR "models/smooth_vase.obj");
 
-	std::shared_ptr model = Model::CreateModelFromFile(device, RES_DIR "models/smooth_vase.obj");
+		// Materials
+		auto redMatId			= materialSystem->CreateMaterial();
+		auto& redMat			= materialSystem->Get(redMatId);
+		redMat.params.albedo	= glm::vec4(0.9f, 0.2f, 0.2f, 1.0f);
+		redMat.params.roughness = 0.85f;
+		redMat.params.metallic	= 0.0f;
 
-	// Materials
-	auto redMatId			= materialSystem->CreateMaterial();
-	auto& redMat			= materialSystem->Get(redMatId);
-	redMat.params.albedo	= glm::vec4(0.9f, 0.2f, 0.2f, 1.0f);
-	redMat.params.roughness = 0.85f;
-	redMat.params.metallic	= 0.0f;
+		auto goldMatId			 = materialSystem->CreateMaterial();
+		auto& goldMat			 = materialSystem->Get(goldMatId);
+		goldMat.params.albedo	 = glm::vec4(0.944f, 0.776f, 0.373f, 1.0f);
+		goldMat.params.roughness = 0.3f;
+		goldMat.params.metallic	 = 1.0f;
 
-	auto goldMatId			 = materialSystem->CreateMaterial();
-	auto& goldMat			 = materialSystem->Get(goldMatId);
-	goldMat.params.albedo	 = glm::vec4(0.944f, 0.776f, 0.373f, 1.0f);
-	goldMat.params.roughness = 0.3f;
-	goldMat.params.metallic	 = 1.0f;
+		auto floorMatId			= materialSystem->CreateMaterial();
+		auto& floorMat			= materialSystem->Get(floorMatId);
+		floorMat.params.uvScale = glm::vec2 {5.0f};
+		floorMat.textures.albedo =
+			Texture::Builder(device).addLayer(RES_DIR "textures/floor/slate_floor_diff_2k.jpg").build();
+		floorMat.textures.arm = Texture::Builder(device)
+									.addLayer(RES_DIR "textures/floor/slate_floor_arm_2k.jpg")
+									.format(VK_FORMAT_R8G8B8A8_UNORM)
+									.build();
+		floorMat.textures.normal = Texture::Builder(device)
+									   .addLayer(RES_DIR "textures/floor/slate_floor_nor_gl_2k.jpg")
+									   .format(VK_FORMAT_R8G8B8A8_UNORM)
+									   .build();
 
-	auto floorMatId			= materialSystem->CreateMaterial();
-	auto& floorMat			= materialSystem->Get(floorMatId);
-	floorMat.params.uvScale = glm::vec2 {5.0f};
-	floorMat.textures.albedo =
-		Texture::Builder(device).addLayer(RES_DIR "textures/floor/slate_floor_diff_2k.jpg").build();
-	floorMat.textures.arm = Texture::Builder(device)
-								.addLayer(RES_DIR "textures/floor/slate_floor_arm_2k.jpg")
-								.format(VK_FORMAT_R8G8B8A8_UNORM)
-								.build();
-	floorMat.textures.normal = Texture::Builder(device)
-								   .addLayer(RES_DIR "textures/floor/slate_floor_nor_gl_2k.jpg")
-								   .format(VK_FORMAT_R8G8B8A8_UNORM)
-								   .build();
-	;
+		// Objects
+		auto object					 = GameObject::Create();
+		object.model				 = model;
+		object.transform.translation = {0.5f, 0.0f, 0.0f};
+		object.transform.scale		 = glm::vec3 {3.0f};
+		object.materialId			 = redMatId;
 
-	// Objects
-	auto object					 = GameObject::Create();
-	object.model				 = model;
-	object.transform.translation = {0.5f, 0.0f, 0.0f};
-	object.transform.scale		 = glm::vec3 {3.0f};
-	object.materialId			 = redMatId;
+		gameObjects.emplace(object.getId(), std::move(object));
 
-	gameObjects.emplace(object.getId(), std::move(object));
+		object						 = GameObject::Create();
+		object.model				 = model;
+		object.transform.translation = {-0.5f, 0.0f, 0.0f};
+		object.transform.scale		 = glm::vec3 {1.0f, 0.3f, 0.5f} * 3.0f;
+		object.materialId			 = goldMatId;
 
-	object						 = GameObject::Create();
-	object.model				 = model;
-	object.transform.translation = {-0.5f, 0.0f, 0.0f};
-	object.transform.scale		 = glm::vec3 {1.0f, 0.3f, 0.5f} * 3.0f;
-	object.materialId			 = goldMatId;
+		gameObjects.emplace(object.getId(), std::move(object));
 
-	gameObjects.emplace(object.getId(), std::move(object));
+		std::shared_ptr floor = Model::CreateModelFromFile(device, RES_DIR "models/quad.obj");
 
-	std::shared_ptr floor = Model::CreateModelFromFile(device, RES_DIR "models/quad.obj");
+		object						 = GameObject::Create();
+		object.model				 = floor;
+		object.transform.translation = {0.0f, 0.0f, 0.0f};
+		object.transform.scale		 = glm::vec3 {5.0f};
+		object.materialId			 = floorMatId;
+		gameObjects.emplace(object.getId(), std::move(object));
 
-	object						 = GameObject::Create();
-	object.model				 = floor;
-	object.transform.translation = {0.0f, 0.0f, 0.0f};
-	object.transform.scale		 = glm::vec3 {5.0f};
-	object.materialId			 = floorMatId;
-	gameObjects.emplace(object.getId(), std::move(object));
+		// Lights
 
-	// Lights
+		object						 = GameObject::CreatePointLight(0.5f, 0.1f, {0.5f, 0.1f, 0.1f});
+		object.transform.translation = {-1.0f, -1.0f, -1.0f};
+		gameObjects.emplace(object.getId(), std::move(object));
 
-	object						 = GameObject::CreatePointLight(0.5f, 0.1f, {0.5f, 0.1f, 0.1f});
-	object.transform.translation = {-1.0f, -1.0f, -1.0f};
-	gameObjects.emplace(object.getId(), std::move(object));
+		object						 = GameObject::CreatePointLight(1.0f, 0.2f, {0.1f, 0.1f, 0.5f});
+		object.transform.translation = {1.0f, -1.0f, -1.0f};
+		gameObjects.emplace(object.getId(), std::move(object));
 
-	object						 = GameObject::CreatePointLight(1.0f, 0.2f, {0.1f, 0.1f, 0.5f});
-	object.transform.translation = {1.0f, -1.0f, -1.0f};
-	gameObjects.emplace(object.getId(), std::move(object));
+		object						 = GameObject::CreatePointLight(0.7f, 0.15f, {1.0f, 1.0f, 1.0f});
+		object.transform.translation = {0.0f, -0.5f, 0.0f};
+		gameObjects.emplace(object.getId(), std::move(object));
 
-	object						 = GameObject::CreatePointLight(0.7f, 0.15f, {1.0f, 1.0f, 1.0f});
-	object.transform.translation = {0.0f, -0.5f, 0.0f};
-	gameObjects.emplace(object.getId(), std::move(object));
+		object					  = GameObject::CreateDirectionalLight(1.5f, {1.0f, 1.0f, 1.0f});
+		object.transform.rotation = {0.7f, 0.0f, -1.5f};
+		gameObjects.emplace(object.getId(), std::move(object));
+	};
 
-	object					  = GameObject::CreateDirectionalLight(1.5f, {1.0f, 1.0f, 1.0f});
-	object.transform.rotation = {0.7f, 0.0f, -1.5f};
-	gameObjects.emplace(object.getId(), std::move(object));
+	auto sphereSceneSetup = [&]() {
+		std::shared_ptr sphere = Model::CreateModelFromFile(device, RES_DIR "models/sphere.obj");
+		int n				   = 6;
+		for (int i = 0; i < n; i++) {
+			for (int j = 0; j < n; j++) {
+				auto matId			 = materialSystem->CreateMaterial();
+				auto& mat			 = materialSystem->Get(matId);
+				mat.params.albedo	 = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
+				mat.params.roughness = 1.0 / (n - 1) * i;
+				mat.params.metallic	 = 1.0 / (n - 1) * j;
 
-	/*
-	std::shared_ptr sphere = Model::CreateModelFromFile(device, RES_DIR "models/sphere.obj");
-	int n				   = 5;
-	for (int i = 0; i < n; i++) {
-		for (int j = 0; j < n; j++) {
-			auto matId			 = materialSystem->CreateMaterial();
-			auto& mat			 = materialSystem->Get(matId);
-			mat.params.albedo	 = glm::vec4(0.9f, 0.2f, 0.2f, 1.0f);
-			mat.params.roughness = 1.0 / (n - 1) * i;
-			mat.params.metallic	 = 1.0 / (n - 1) * j;
-
-			auto object					 = GameObject::Create();
-			object.model				 = sphere;
-			object.transform.translation = glm::vec3 {i - (n - 1) / 2.0f, j - (n - 1) / 2.0f, 0.0f};
-			object.transform.scale		 = glm::vec3 {0.15f};
-			object.materialId			 = matId;
-			gameObjects.emplace(object.getId(), std::move(object));
+				auto object					 = GameObject::Create();
+				object.model				 = sphere;
+				object.transform.translation = glm::vec3 {i - (n - 1) / 2.0f, j - (n - 1) / 2.0f, 0.0f};
+				object.transform.scale		 = glm::vec3 {0.15f};
+				object.materialId			 = matId;
+				gameObjects.emplace(object.getId(), std::move(object));
+			}
 		}
-	}
 
-	// Lights
-	auto light				 = GameObject::CreateDirectionalLight(1.5f, {1.0f, 1.0f, 1.0f});
-	light.transform.rotation = {0.7f, 0.0f, -1.0f};
-	gameObjects.emplace(light.getId(), std::move(light));
-	*/
+		// Lights
+		auto light				 = GameObject::CreateDirectionalLight(1.5f, {1.0f, 1.0f, 1.0f});
+		light.transform.rotation = {0.7f, 0.0f, -1.0f};
+		gameObjects.emplace(light.getId(), std::move(light));
+	};
+
+	skyboxCubemap = std::make_shared<Cubemap>(device, RES_DIR "cubemaps/skies/", "png");
+	// vaseSceneSetup();
+	sphereSceneSetup();
 }
 } // namespace MVE
