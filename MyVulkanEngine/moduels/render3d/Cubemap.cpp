@@ -15,7 +15,7 @@ void MVE::Cubemap::CreateTexture(const std::string& folderPath, const std::strin
 		.addressMode(VK_SAMPLER_ADDRESS_MODE_REPEAT)
 		.useMipmaps(true);
 
-	for (int i = 0; i < 6; i++) { builder.addLayer(folderPath + names[i] + "." + extension); }
+	for (int i = 0; i < 6; i++) { builder.addLayer(FileTextureSource(folderPath + names[i] + "." + extension)); }
 
 	texture = builder.build();
 }

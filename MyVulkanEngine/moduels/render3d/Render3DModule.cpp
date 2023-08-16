@@ -109,17 +109,18 @@ void Render3DModule::LoadGameObjects()
 		goldMat.params.roughness = 0.3f;
 		goldMat.params.metallic	 = 1.0f;
 
-		auto floorMatId			= materialSystem->CreateMaterial();
-		auto& floorMat			= materialSystem->Get(floorMatId);
-		floorMat.params.uvScale = glm::vec2 {5.0f};
-		floorMat.textures.albedo =
-			Texture::Builder(device).addLayer(RES_DIR "textures/floor/slate_floor_diff_2k.jpg").build();
+		auto floorMatId			 = materialSystem->CreateMaterial();
+		auto& floorMat			 = materialSystem->Get(floorMatId);
+		floorMat.params.uvScale	 = glm::vec2 {5.0f};
+		floorMat.textures.albedo = Texture::Builder(device)
+									   .addLayer(FileTextureSource(RES_DIR "textures/floor/slate_floor_diff_2k.jpg"))
+									   .build();
 		floorMat.textures.arm = Texture::Builder(device)
-									.addLayer(RES_DIR "textures/floor/slate_floor_arm_2k.jpg")
+									.addLayer(FileTextureSource(RES_DIR "textures/floor/slate_floor_arm_2k.jpg"))
 									.format(VK_FORMAT_R8G8B8A8_UNORM)
 									.build();
 		floorMat.textures.normal = Texture::Builder(device)
-									   .addLayer(RES_DIR "textures/floor/slate_floor_nor_gl_2k.jpg")
+									   .addLayer(FileTextureSource(RES_DIR "textures/floor/slate_floor_nor_gl_2k.jpg"))
 									   .format(VK_FORMAT_R8G8B8A8_UNORM)
 									   .build();
 

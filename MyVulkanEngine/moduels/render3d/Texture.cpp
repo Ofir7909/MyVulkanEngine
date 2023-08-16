@@ -7,9 +7,54 @@
 
 namespace MVE
 {
-Texture::Builder& Texture::Builder::addLayer(const std::string& filepath)
+
+FileTextureSource::FileTextureSource(const std::string& filepath)
 {
-	layers_.push_back(filepath);
+	int width, height, channels;
+	stbi_set_flip_vertically_on_load(true);
+	stbi_uc* stbi_pixels = stbi_load(filepath.c_str(), &width, &height, &channels, STBI_rgb_alpha);
+	MVE_ASSERT(stbi_pixels, "Failed to load image from path {}", filepath);
+
+	width_	= width;
+	height_ = height;
+	bpp_	= 4;
+
+	uint32_t size = width_ * height_ * bpp_;
+	pixels_.reserve(size);
+	pixels_.insert(pixels_.end(), stbi_pixels, stbi_pixels + size);
+
+	stbi_image_free(stbi_pixels);
+}
+
+SolidTextureSource::SolidTextureSource(glm::vec4 color, uint32_t width, uint32_t height)
+{
+	width_	= width;
+	height_ = height;
+	bpp_	= 4;
+
+	pixels_.resize(width * height * bpp_);
+	for (int i = 0; i < width; i++) {
+		for (int j = 0; j < height; j++) {
+			pixels_[(i + j * width) * 4 + 0] = color.r * 255;
+			pixels_[(i + j * width) * 4 + 1] = color.g * 255;
+			pixels_[(i + j * width) * 4 + 2] = color.b * 255;
+			pixels_[(i + j * width) * 4 + 3] = color.a * 255;
+		}
+	}
+}
+
+Texture::Builder& Texture::Builder::addLayer(TextureSource&& source)
+{
+	if (width_ != -1 && height_ != -1 && bpp_ != -1) {
+		MVE_ASSERT(width_ == source.width() && height_ == source.height() && bpp_ == source.bpp(),
+				   "Layers must have the same dimensions.")
+	} else {
+		width_	= source.width();
+		height_ = source.height();
+		bpp_	= source.bpp();
+	}
+
+	layers_.push_back(std::move(source.pixels_));
 	return *this;
 }
 
@@ -17,33 +62,22 @@ std::unique_ptr<Texture> Texture::Builder::build()
 {
 	MVE_ASSERT(layers_.size() > 0, "Can't create texture without layers. See Texture::Builder::addLayer()");
 
-	int width, height, channels;
-	std::vector<stbi_uc*> pixels;
-	stbi_set_flip_vertically_on_load(true);
-	for (int i = 0; i < layers_.size(); i++) {
-		pixels.push_back(stbi_load(layers_[i].c_str(), &width, &height, &channels, STBI_rgb_alpha));
-		MVE_ASSERT(pixels[i], "Failed to load image from path {}", layers_[i]);
-	}
-
-	VkDeviceSize layerSize = width * height * 4;
+	VkDeviceSize layerSize = width_ * height_ * bpp_;
 	VkDeviceSize imageSize = layerSize * layers_.size();
 
 	if (useMipmaps_)
-		mipmapCount_ = (std::floor(std::log2(std::max(width, height)))) + 1;
+		mipmapCount_ = (std::floor(std::log2(std::max(width_, height_)))) + 1;
 
 	Buffer buffer(device_, imageSize, 1, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
 	buffer.Map();
-	for (int i = 0; i < layers_.size(); i++) {
-		buffer.WriteToBuffer(pixels[i], layerSize, layerSize * i);
-		stbi_image_free(pixels[i]);
-	}
+	for (int i = 0; i < layers_.size(); i++) { buffer.WriteToBuffer(layers_[i].data(), layerSize, layerSize * i); }
 	buffer.Flush();
 
 	VkImageCreateInfo createInfo {};
 	createInfo.sType		 = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 	createInfo.imageType	 = VK_IMAGE_TYPE_2D;
-	createInfo.extent.width	 = width;
-	createInfo.extent.height = height;
+	createInfo.extent.width	 = width_;
+	createInfo.extent.height = height_;
 	createInfo.extent.depth	 = 1;
 	createInfo.mipLevels	 = mipmapCount_;
 	createInfo.arrayLayers	 = layers_.size();
@@ -61,10 +95,10 @@ std::unique_ptr<Texture> Texture::Builder::build()
 	image_->TransitionImageLayout(format_, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 								  layers_.size(), mipmapCount_);
 
-	device_.CopyBufferToImage(buffer.GetBuffer(), image_->image, width, height, layers_.size());
+	device_.CopyBufferToImage(buffer.GetBuffer(), image_->image, width_, height_, layers_.size());
 
 	if (useMipmaps_)
-		generateMipmaps(width, height);
+		generateMipmaps();
 	else
 		image_->TransitionImageLayout(format_, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 									  VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, layers_.size(), mipmapCount_);
@@ -75,7 +109,7 @@ std::unique_ptr<Texture> Texture::Builder::build()
 	return std::move(image_);
 }
 
-void Texture::Builder::generateMipmaps(int width, int height)
+void Texture::Builder::generateMipmaps()
 {
 	VkFormatProperties formatProperties;
 	vkGetPhysicalDeviceFormatProperties(device_.PhysicalDevice(), format_, &formatProperties);
@@ -95,8 +129,8 @@ void Texture::Builder::generateMipmaps(int width, int height)
 	barrier.subresourceRange.baseArrayLayer = 0;
 	barrier.subresourceRange.layerCount		= layers_.size();
 
-	int mipWidth  = width;
-	int mipHeight = height;
+	int mipWidth  = width_;
+	int mipHeight = height_;
 
 	for (int i = 1; i < mipmapCount_; i++) {
 		barrier.subresourceRange.baseMipLevel = i - 1;

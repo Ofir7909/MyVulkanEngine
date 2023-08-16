@@ -4,6 +4,37 @@
 
 namespace MVE
 {
+class TextureSource
+{
+	friend class Texture;
+
+  public:
+	virtual uint32_t width() { return width_; }
+	virtual uint32_t height() { return height_; }
+	virtual uint32_t bpp() { return bpp_; }
+
+  protected:
+	TextureSource() {}
+
+  protected:
+	std::vector<uint8_t> pixels_;
+	uint32_t width_;
+	uint32_t height_;
+	uint32_t bpp_;
+};
+
+class FileTextureSource : public TextureSource
+{
+  public:
+	FileTextureSource(const std::string& filepath);
+};
+
+class SolidTextureSource : public TextureSource
+{
+  public:
+	SolidTextureSource(glm::vec4 color, uint32_t width = 1, uint32_t height = 1);
+};
+
 class Texture
 {
   public:
@@ -12,7 +43,7 @@ class Texture
 	  public:
 		Builder(Device& device): device_ {device} {}
 
-		Builder& addLayer(const std::string& filepath);
+		Builder& addLayer(TextureSource&& source);
 
 		Builder& format(VkFormat format)
 		{
@@ -44,14 +75,18 @@ class Texture
 		std::unique_ptr<Texture> build();
 
 	  private:
-		void generateMipmaps(int width, int height);
+		void generateMipmaps();
 		VkImageView createImageView();
 		VkSampler createSampler();
 
 	  private:
 		Device& device_;
 		std::unique_ptr<Texture> image_;
-		std::vector<std::string> layers_;
+		std::vector<std::vector<uint8_t>> layers_;
+		uint32_t width_	 = -1;
+		uint32_t height_ = -1;
+		uint32_t bpp_	 = -1;
+
 		VkFormat format_				  = VK_FORMAT_R8G8B8A8_SRGB;
 		VkFilter minMagFilter_			  = VK_FILTER_LINEAR;
 		VkSamplerAddressMode addressMode_ = VK_SAMPLER_ADDRESS_MODE_REPEAT;
