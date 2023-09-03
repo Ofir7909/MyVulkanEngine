@@ -1,7 +1,7 @@
 #version 450
 
 layout(set=0, binding=0) uniform sampler2D inputTexture;
-layout(set=0, binding=1, rgba8) writeonly uniform imageCube outputTexture;
+layout(set=0, binding=1, rgba8) restrict writeonly uniform imageCube outputTexture;
 
 
 const float PI = 3.141592;

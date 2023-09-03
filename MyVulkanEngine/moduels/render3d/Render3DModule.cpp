@@ -11,7 +11,7 @@ void Render3DModule::OnAttach()
 	globalPool = DescriptorPool::Builder(device)
 					 .SetMaxSets(SwapChain::MAX_FRAMES_IN_FLIGHT)
 					 .AddPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, SwapChain::MAX_FRAMES_IN_FLIGHT)
-					 .AddPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, SwapChain::MAX_FRAMES_IN_FLIGHT)
+					 .AddPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, SwapChain::MAX_FRAMES_IN_FLIGHT * 2)
 					 .Build();
 
 	globalUboBuffers.resize(SwapChain::MAX_FRAMES_IN_FLIGHT);
@@ -25,15 +25,18 @@ void Render3DModule::OnAttach()
 	globalSetLayout = DescriptorSetLayout::Builder(device)
 						  .AddBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL_GRAPHICS)
 						  .AddBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_ALL_GRAPHICS)
+						  .AddBinding(2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_ALL_GRAPHICS)
 						  .Build();
 
-	auto skyboxImageInfo = skyboxCubemap->ImageInfo();
+	auto skyboxImageInfo	 = skyboxCubemap->ImageInfo();
+	auto irradianceImageInfo = skyboxCubemap->IrradianceImageInfo();
 	globalDescriptorSets.resize(SwapChain::MAX_FRAMES_IN_FLIGHT);
 	for (int i = 0; i < globalDescriptorSets.size(); i++) {
 		auto bufferInfo = globalUboBuffers[i]->DescriptorInfo();
 		DescriptorWriter(*globalSetLayout, *globalPool)
 			.WriteBuffer(0, &bufferInfo)
 			.WriteImage(1, &skyboxImageInfo)
+			.WriteImage(2, &irradianceImageInfo)
 			.Build(globalDescriptorSets[i]);
 	}
 
@@ -198,6 +201,7 @@ void Render3DModule::LoadGameObjects()
 	// skyboxCubemap = std::make_shared<Cubemap>(device, RES_DIR "cubemaps/skies/", "png");
 	skyboxCubemap = std::make_shared<Cubemap>(device);
 	skyboxCubemap->CreateFromHdri(RES_DIR "hdri/bush_restaurant_2k.hdr", 1024);
+	// skyboxCubemap->CreateFromHdri(RES_DIR "hdri/clarens_midday_2k.hdr", 1024);
 
 	// vaseSceneSetup();
 	sphereSceneSetup();

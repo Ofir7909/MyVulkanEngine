@@ -30,6 +30,7 @@ layout(set=0, binding=0) uniform GlobalUbo{
 } uUbo;
 
 layout(set=0, binding=1) uniform samplerCube uSkybox;
+layout(set=0, binding=2) uniform samplerCube uIrradiance;
 
 layout(set=1, binding=0) uniform MaterialParams
 {
@@ -115,7 +116,7 @@ void main()
 	vec3 V = normalize(cameraPosWorld - vPositionWorld);
 
 	//vec3 ambientLight = uUbo.ambientLightColor.xyz * uUbo.ambientLightColor.w * ao;
-	vec3 ambientLight = textureLod(uSkybox, N, MAX_REFLECTION_LOD).rgb * ao;
+	vec3 ambientLight = texture(uIrradiance, N).rgb * ao;
 	vec3 outLight = ambientLight * albedo;
 	
 	vec3 F0 = mix(vec3(0.04), albedo, metallic);
