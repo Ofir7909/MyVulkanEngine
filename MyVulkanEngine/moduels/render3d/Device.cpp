@@ -176,6 +176,7 @@ void Device::CreateLogicalDevice()
 	}
 
 	vkGetDeviceQueue(device_, indices.graphicsFamily, 0, &graphicsQueue_);
+	vkGetDeviceQueue(device_, indices.graphicsFamily, 0, &computeQueue_);
 	vkGetDeviceQueue(device_, indices.presentFamily, 0, &presentQueue_);
 }
 
@@ -333,7 +334,8 @@ QueueFamilyIndices Device::FindQueueFamilies(VkPhysicalDevice device)
 
 	int i = 0;
 	for (const auto& queueFamily : queueFamilies) {
-		if (queueFamily.queueCount > 0 && queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+		if (queueFamily.queueCount > 0 && (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) &&
+			(queueFamily.queueFlags & VK_QUEUE_COMPUTE_BIT)) {
 			indices.graphicsFamily		   = i;
 			indices.graphicsFamilyHasValue = true;
 		}

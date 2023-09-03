@@ -55,8 +55,8 @@ void PointLightSystem::CreatePipeline(VkRenderPass renderPass)
 	pipelineConfig.attributeDescription.clear();
 	pipelineConfig.renderPass	  = renderPass;
 	pipelineConfig.pipelineLayout = pipelineLayout;
-	pipeline					  = std::make_unique<Pipeline>(device, SHADER_BINARY_DIR "point_light.vert.spv",
-										   SHADER_BINARY_DIR "point_light.frag.spv", pipelineConfig);
+	pipeline					  = std::make_unique<GraphicsPipeline>(device, SHADER_BINARY_DIR "point_light.vert.spv",
+												   SHADER_BINARY_DIR "point_light.frag.spv", pipelineConfig);
 }
 
 void PointLightSystem::Update(FrameInfo& frameInfo, GameObject::Map& gameObjects, GlobalUbo& ubo)

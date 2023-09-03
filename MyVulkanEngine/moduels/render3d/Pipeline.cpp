@@ -5,25 +5,6 @@
 namespace MVE
 {
 
-Pipeline::Pipeline(Device& device, const std::string& vertFilepath, const std::string& fragFilepath,
-				   const PipelineConfigInfo& config):
-	device(device)
-{
-	CreateGraphicsPipeline(vertFilepath, fragFilepath, config);
-}
-
-Pipeline ::~Pipeline()
-{
-	vkDestroyShaderModule(device.VulkanDevice(), vertShaderModule, nullptr);
-	vkDestroyShaderModule(device.VulkanDevice(), fragShaderModule, nullptr);
-	vkDestroyPipeline(device.VulkanDevice(), graphicsPipeline, nullptr);
-}
-
-void Pipeline::Bind(VkCommandBuffer commandBuffer)
-{
-	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
-}
-
 void Pipeline::DefaultPipelineConfigInfo(PipelineConfigInfo& configInfo)
 {
 	configInfo.inputAssemblyInfo.sType					= VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -105,8 +86,69 @@ void Pipeline::DefaultPipelineConfigInfo(PipelineConfigInfo& configInfo)
 	configInfo.attributeDescription = Model::Vertex::getAttributeDescriptions();
 }
 
-void Pipeline::CreateGraphicsPipeline(const std::string& vertFilepath, const std::string& fragFilepath,
-									  const PipelineConfigInfo& config)
+GraphicsPipeline::GraphicsPipeline(Device& device, const std::string& vertFilepath, const std::string& fragFilepath,
+								   const PipelineConfigInfo& config):
+	Pipeline(device)
+{
+	CreateGraphicsPipeline(vertFilepath, fragFilepath, config);
+}
+
+void Pipeline::CreateShaderModule(const std::vector<char>& code, VkShaderModule* shaderModule)
+{
+	VkShaderModuleCreateInfo createInfo;
+	createInfo.sType	= VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+	createInfo.codeSize = code.size();
+	createInfo.pCode	= reinterpret_cast<const uint32_t*>(code.data());
+	createInfo.flags	= 0;
+	createInfo.pNext	= VK_NULL_HANDLE;
+
+	auto error = vkCreateShaderModule(device.VulkanDevice(), &createInfo, nullptr, shaderModule);
+	assert(error == VK_SUCCESS, "Failed to create shader module");
+}
+
+void Pipeline::EnableAlphaBlending(PipelineConfigInfo& configInfo)
+{
+	configInfo.colorBlendAttachment.colorWriteMask =
+		VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+	configInfo.colorBlendAttachment.blendEnable			= VK_TRUE;
+	configInfo.colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+	configInfo.colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+	configInfo.colorBlendAttachment.colorBlendOp		= VK_BLEND_OP_ADD;
+	configInfo.colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+	configInfo.colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+	configInfo.colorBlendAttachment.alphaBlendOp		= VK_BLEND_OP_ADD;
+}
+
+std::vector<char> Pipeline::ReadFile(const std::string& filepath)
+{
+	std::ifstream file(filepath, std::ios::ate | std::ios::binary);
+
+	MVE_ASSERT(file.is_open(), "Failed to open file at path: {}", filepath);
+
+	int32_t filesize = file.tellg();
+	std::vector<char> buffer(filesize);
+
+	file.seekg(0);
+	file.read(buffer.data(), filesize);
+
+	file.close();
+	return buffer;
+}
+
+GraphicsPipeline::~GraphicsPipeline()
+{
+	vkDestroyShaderModule(device.VulkanDevice(), vertShaderModule, nullptr);
+	vkDestroyShaderModule(device.VulkanDevice(), fragShaderModule, nullptr);
+	vkDestroyPipeline(device.VulkanDevice(), graphicsPipeline, nullptr);
+}
+
+void GraphicsPipeline::Bind(VkCommandBuffer commandBuffer)
+{
+	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+}
+
+void GraphicsPipeline::CreateGraphicsPipeline(const std::string& vertFilepath, const std::string& fragFilepath,
+											  const PipelineConfigInfo& config)
 {
 	auto vertCode = ReadFile(vertFilepath);
 	auto fragCode = ReadFile(fragFilepath);
@@ -173,46 +215,50 @@ void Pipeline::CreateGraphicsPipeline(const std::string& vertFilepath, const std
 	assert(error == VK_SUCCESS, "Failed to create graphics pipeline");
 }
 
-void Pipeline::CreateShaderModule(const std::vector<char>& code, VkShaderModule* shaderModule)
+ComputePipeline::ComputePipeline(Device& device, const std::string& computeFilepath, VkPipelineLayout pipelineLayout):
+	Pipeline(device)
 {
-	VkShaderModuleCreateInfo createInfo;
-	createInfo.sType	= VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-	createInfo.codeSize = code.size();
-	createInfo.pCode	= reinterpret_cast<const uint32_t*>(code.data());
-	createInfo.flags	= 0;
-	createInfo.pNext	= VK_NULL_HANDLE;
-
-	auto error = vkCreateShaderModule(device.VulkanDevice(), &createInfo, nullptr, shaderModule);
-	assert(error == VK_SUCCESS, "Failed to create shader module");
+	CreateComputePipeline(computeFilepath, pipelineLayout);
 }
 
-void Pipeline::EnableAlphaBlending(PipelineConfigInfo& configInfo)
+ComputePipeline::~ComputePipeline()
 {
-	configInfo.colorBlendAttachment.colorWriteMask =
-		VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-	configInfo.colorBlendAttachment.blendEnable			= VK_TRUE;
-	configInfo.colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-	configInfo.colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-	configInfo.colorBlendAttachment.colorBlendOp		= VK_BLEND_OP_ADD;
-	configInfo.colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-	configInfo.colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-	configInfo.colorBlendAttachment.alphaBlendOp		= VK_BLEND_OP_ADD;
+	vkDestroyShaderModule(device.VulkanDevice(), computeShaderModule, nullptr);
+	vkDestroyPipeline(device.VulkanDevice(), computePipeline, nullptr);
 }
 
-std::vector<char> Pipeline::ReadFile(const std::string& filepath)
+void ComputePipeline::Bind(VkCommandBuffer commandBuffer)
 {
-	std::ifstream file(filepath, std::ios::ate | std::ios::binary);
+	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipeline);
+}
 
-	MVE_ASSERT(file.is_open(), "Failed to open file at path: {}", filepath);
+void ComputePipeline::CreateComputePipeline(const std::string& computeFilepath, VkPipelineLayout pipelineLayout)
+{
+	auto computeCode = ReadFile(computeFilepath);
 
-	int32_t filesize = file.tellg();
-	std::vector<char> buffer(filesize);
+	MVE_INFO("Loaded Compute Shader Code. Size: {}", computeCode.size());
 
-	file.seekg(0);
-	file.read(buffer.data(), filesize);
+	CreateShaderModule(computeCode, &computeShaderModule);
 
-	file.close();
-	return buffer;
+	VkPipelineShaderStageCreateInfo shaderStage;
+	shaderStage.sType				= VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+	shaderStage.stage				= VK_SHADER_STAGE_COMPUTE_BIT;
+	shaderStage.module				= computeShaderModule;
+	shaderStage.pName				= "main";
+	shaderStage.flags				= 0;
+	shaderStage.pNext				= nullptr;
+	shaderStage.pSpecializationInfo = nullptr;
+
+	VkComputePipelineCreateInfo pipelineInfo {};
+	pipelineInfo.sType	= VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+	pipelineInfo.stage	= shaderStage;
+	pipelineInfo.layout = pipelineLayout;
+	pipelineInfo.pNext	= nullptr;
+	pipelineInfo.flags	= 0;
+
+	auto error =
+		vkCreateComputePipelines(device.VulkanDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &computePipeline);
+	assert(error == VK_SUCCESS, "Failed to create graphics pipeline");
 }
 
 } // namespace MVE

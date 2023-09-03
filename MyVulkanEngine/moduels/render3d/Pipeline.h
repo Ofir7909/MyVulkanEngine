@@ -30,32 +30,66 @@ struct PipelineConfigInfo
 
 class Pipeline
 {
+  protected:
+	Pipeline(Device& device): device(device) {}
+
   public:
-	Pipeline(Device& device, const std::string& vertFilepath, const std::string& fragFilepath,
-			 const PipelineConfigInfo& config);
-	~Pipeline();
+	virtual ~Pipeline() = default;
 
 	Pipeline(const Pipeline&)		= delete;
 	void operator=(const Pipeline&) = delete;
 
-	void Bind(VkCommandBuffer commandBuffer);
+	virtual void Bind(VkCommandBuffer commandBuffer) = 0;
 
   public:
 	static void DefaultPipelineConfigInfo(PipelineConfigInfo& configInfo);
 	static void EnableAlphaBlending(PipelineConfigInfo& configInfo);
 
+  protected:
+	void CreateShaderModule(const std::vector<char>& code, VkShaderModule* shaderModule);
+
+  protected:
+	static std::vector<char> ReadFile(const std::string& filepath);
+
+  protected:
+	Device& device;
+};
+
+class GraphicsPipeline : public Pipeline
+{
+  public:
+	GraphicsPipeline(Device& device, const std::string& vertFilepath, const std::string& fragFilepath,
+					 const PipelineConfigInfo& config);
+
+	~GraphicsPipeline();
+
+	void Bind(VkCommandBuffer commandBuffer) override;
+
   private:
 	void CreateGraphicsPipeline(const std::string& vertFilepath, const std::string& fragFilepath,
 								const PipelineConfigInfo& config);
-	void CreateShaderModule(const std::vector<char>& code, VkShaderModule* shaderModule);
 
   private:
-	static std::vector<char> ReadFile(const std::string& filepath);
-
-  private:
-	Device& device;
 	VkPipeline graphicsPipeline;
 	VkShaderModule vertShaderModule;
 	VkShaderModule fragShaderModule;
 };
+
+class ComputePipeline : public Pipeline
+{
+  public:
+	ComputePipeline(Device& device, const std::string& computeFilepath, VkPipelineLayout pipelineLayout);
+
+	~ComputePipeline();
+
+	void Bind(VkCommandBuffer commandBuffer) override;
+
+  private:
+	void CreateComputePipeline(const std::string& computeFilepath, VkPipelineLayout pipelineLayout);
+
+  private:
+	VkPipeline computePipeline;
+	VkShaderModule computeShaderModule;
+};
+
 } // namespace MVE

@@ -42,8 +42,8 @@ void SkyboxSystem::CreatePipeline(VkRenderPass renderPass)
 	pipelineConfig.attributeDescription.clear();
 	pipelineConfig.renderPass	  = renderPass;
 	pipelineConfig.pipelineLayout = pipelineLayout;
-	pipeline					  = std::make_unique<Pipeline>(device, SHADER_BINARY_DIR "skybox.vert.spv",
-										   SHADER_BINARY_DIR "skybox.frag.spv", pipelineConfig);
+	pipeline					  = std::make_unique<GraphicsPipeline>(device, SHADER_BINARY_DIR "skybox.vert.spv",
+												   SHADER_BINARY_DIR "skybox.frag.spv", pipelineConfig);
 }
 
 void SkyboxSystem::Render(FrameInfo& frameInfo, const Cubemap& cubemap)

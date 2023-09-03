@@ -85,6 +85,7 @@ endif()
 file(GLOB_RECURSE GLSL_SOURCE_FILES
     "shaders/*.frag"
     "shaders/*.vert"
+    "shaders/*.comp"
     )
 
 target_compile_definitions(VulanEngine PRIVATE RES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/res/")

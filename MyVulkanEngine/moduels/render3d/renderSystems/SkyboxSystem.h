@@ -30,7 +30,7 @@ class SkyboxSystem : public Module
   private:
 	Device& device;
 
-	std::unique_ptr<Pipeline> pipeline;
+	std::unique_ptr<GraphicsPipeline> pipeline;
 	VkPipelineLayout pipelineLayout;
 };
 } // namespace MVE

@@ -195,7 +195,10 @@ void Render3DModule::LoadGameObjects()
 		gameObjects.emplace(light.getId(), std::move(light));
 	};
 
-	skyboxCubemap = std::make_shared<Cubemap>(device, RES_DIR "cubemaps/skies/", "png");
+	// skyboxCubemap = std::make_shared<Cubemap>(device, RES_DIR "cubemaps/skies/", "png");
+	skyboxCubemap = std::make_shared<Cubemap>(device);
+	skyboxCubemap->CreateFromHdri(RES_DIR "hdri/bush_restaurant_2k.hdr", 1024);
+
 	// vaseSceneSetup();
 	sphereSceneSetup();
 }

@@ -84,10 +84,10 @@ std::unique_ptr<Texture> Texture::Builder::build()
 	createInfo.format		 = format_;
 	createInfo.tiling		 = VK_IMAGE_TILING_OPTIMAL;
 	createInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	createInfo.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-	createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	createInfo.samples	   = VK_SAMPLE_COUNT_1_BIT;
-	createInfo.flags	   = (isCubemap_ ? VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT : 0);
+	createInfo.usage		 = usage;
+	createInfo.sharingMode	 = VK_SHARING_MODE_EXCLUSIVE;
+	createInfo.samples		 = VK_SAMPLE_COUNT_1_BIT;
+	createInfo.flags		 = (isCubemap_ ? VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT : 0);
 
 	image_ = std::make_unique<Texture>(device_);
 	device_.CreateImageWithInfo(createInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, image_->image, image_->imageMemory);
@@ -100,11 +100,17 @@ std::unique_ptr<Texture> Texture::Builder::build()
 	if (useMipmaps_)
 		generateMipmaps();
 	else
-		image_->TransitionImageLayout(format_, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-									  VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, layers_.size(), mipmapCount_);
+		image_->TransitionImageLayout(format_, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, layout_, layers_.size(),
+									  mipmapCount_);
 
+	image_->layout_	  = layout_;
 	image_->imageView = createImageView();
 	image_->sampler	  = createSampler();
+
+	image_->width_	= width_;
+	image_->height_ = height_;
+	image_->bpp_	= bpp_;
+	image_->layers_ = layers_.size();
 
 	return std::move(image_);
 }
@@ -244,7 +250,7 @@ Texture::~Texture()
 VkDescriptorImageInfo Texture::ImageInfo() const
 {
 	VkDescriptorImageInfo imageInfo {};
-	imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	imageInfo.imageLayout = layout_;
 	imageInfo.imageView	  = imageView;
 	imageInfo.sampler	  = sampler;
 	return imageInfo;
@@ -286,6 +292,18 @@ void Texture::TransitionImageLayout(VkFormat format, VkImageLayout oldLayout, Vk
 
 		sourceStage		 = VK_PIPELINE_STAGE_TRANSFER_BIT;
 		destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+	} else if (oldLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_GENERAL) {
+		barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+		barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+		sourceStage		 = VK_PIPELINE_STAGE_TRANSFER_BIT;
+		destinationStage = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+	} else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_GENERAL) {
+		barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+		barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+		sourceStage		 = VK_PIPELINE_STAGE_TRANSFER_BIT;
+		destinationStage = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
 	} else {
 		throw std::invalid_argument("unsupported layout transition!");
 	}

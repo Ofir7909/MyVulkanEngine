@@ -71,6 +71,16 @@ class Texture
 			mipmapMode_ = mode;
 			return *this;
 		}
+		Builder& addUsageFlag(VkImageUsageFlagBits flag)
+		{
+			usage |= flag;
+			return *this;
+		}
+		Builder& layout(VkImageLayout layout)
+		{
+			layout_ = layout;
+			return *this;
+		}
 
 		std::unique_ptr<Texture> build();
 
@@ -88,12 +98,15 @@ class Texture
 		uint32_t bpp_	 = -1;
 
 		VkFormat format_				  = VK_FORMAT_R8G8B8A8_SRGB;
+		VkImageLayout layout_			  = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		VkFilter minMagFilter_			  = VK_FILTER_LINEAR;
 		VkSamplerAddressMode addressMode_ = VK_SAMPLER_ADDRESS_MODE_REPEAT;
 		bool isCubemap_					  = false;
 		bool useMipmaps_				  = false;
 		VkSamplerMipmapMode mipmapMode_	  = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 		int mipmapCount_				  = 1;
+		VkImageUsageFlags usage			  = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+								  VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 	};
 
   public:
@@ -104,7 +117,12 @@ class Texture
 	VkSampler Sampler() const { return sampler; }
 	VkDescriptorImageInfo ImageInfo() const;
 
-  private:
+	uint32_t layers() { return layers_; }
+	uint32_t width() { return width_; }
+	uint32_t height() { return height_; }
+	uint32_t bpp() { return bpp_; }
+
+  public:
 	void TransitionImageLayout(VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t layerCount,
 							   uint32_t mipmapCount);
 
@@ -114,5 +132,11 @@ class Texture
 	VkDeviceMemory imageMemory;
 	VkImageView imageView;
 	VkSampler sampler;
+	VkImageLayout layout_;
+
+	uint32_t layers_;
+	uint32_t width_;
+	uint32_t height_;
+	uint32_t bpp_;
 };
 } // namespace MVE
