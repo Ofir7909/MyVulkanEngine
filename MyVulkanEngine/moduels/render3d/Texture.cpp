@@ -107,10 +107,12 @@ std::unique_ptr<Texture> Texture::Builder::build()
 	image_->imageView = createImageView();
 	image_->sampler	  = createSampler();
 
-	image_->width_	= width_;
-	image_->height_ = height_;
-	image_->bpp_	= bpp_;
-	image_->layers_ = layers_.size();
+	image_->width_		   = width_;
+	image_->height_		   = height_;
+	image_->bpp_		   = bpp_;
+	image_->layers_		   = layers_.size();
+	image_->mipMapsLevels_ = mipmapCount_;
+	image_->format_		   = format_;
 
 	return std::move(image_);
 }
@@ -311,5 +313,7 @@ void Texture::TransitionImageLayout(VkFormat format, VkImageLayout oldLayout, Vk
 	vkCmdPipelineBarrier(commandBuffer, sourceStage, destinationStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 
 	device.EndSingleTimeCommands(commandBuffer);
+
+	layout_ = newLayout;
 }
 } // namespace MVE

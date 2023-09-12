@@ -30,6 +30,7 @@ class Render3DModule : public Module
 
   private:
 	void LoadGameObjects();
+	void GenerateBrdfLut(uint32_t resolution = 512);
 
   private:
 	Device device {Application::Get()->GetWindow()};
@@ -39,6 +40,7 @@ class Render3DModule : public Module
 	std::unique_ptr<DescriptorSetLayout> globalSetLayout;
 	std::vector<VkDescriptorSet> globalDescriptorSets;
 	GameObject::Map gameObjects;
+	std::shared_ptr<Texture> brdfLut;
 
 	std::vector<std::unique_ptr<Buffer>> globalUboBuffers;
 	std::unique_ptr<MaterialSystem> materialSystem;

@@ -82,8 +82,8 @@ class DescriptorWriter
   public:
 	DescriptorWriter(DescriptorSetLayout& setLayout, DescriptorPool& pool);
 
-	DescriptorWriter& WriteBuffer(uint32_t binding, VkDescriptorBufferInfo* bufferInfo);
-	DescriptorWriter& WriteImage(uint32_t binding, VkDescriptorImageInfo* imageInfo);
+	DescriptorWriter& WriteBuffer(uint32_t binding, VkDescriptorBufferInfo* bufferInfo, uint32_t count = 1);
+	DescriptorWriter& WriteImage(uint32_t binding, VkDescriptorImageInfo* imageInfo, uint32_t count = 1);
 
 	bool Build(VkDescriptorSet& set);
 	void Overwrite(VkDescriptorSet& set);

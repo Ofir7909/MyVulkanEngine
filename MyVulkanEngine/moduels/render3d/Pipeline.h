@@ -78,14 +78,16 @@ class GraphicsPipeline : public Pipeline
 class ComputePipeline : public Pipeline
 {
   public:
-	ComputePipeline(Device& device, const std::string& computeFilepath, VkPipelineLayout pipelineLayout);
+	ComputePipeline(Device& device, const std::string& computeFilepath, VkPipelineLayout pipelineLayout,
+					VkSpecializationInfo* specializationInfo = nullptr);
 
 	~ComputePipeline();
 
 	void Bind(VkCommandBuffer commandBuffer) override;
 
   private:
-	void CreateComputePipeline(const std::string& computeFilepath, VkPipelineLayout pipelineLayout);
+	void CreateComputePipeline(const std::string& computeFilepath, VkPipelineLayout pipelineLayout,
+							   VkSpecializationInfo* specializationInfo);
 
   private:
 	VkPipeline computePipeline;

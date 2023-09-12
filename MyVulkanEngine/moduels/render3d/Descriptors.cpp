@@ -120,39 +120,41 @@ DescriptorWriter::DescriptorWriter(DescriptorSetLayout& setLayout, DescriptorPoo
 {
 }
 
-DescriptorWriter& DescriptorWriter::WriteBuffer(uint32_t binding, VkDescriptorBufferInfo* bufferInfo)
+DescriptorWriter& DescriptorWriter::WriteBuffer(uint32_t binding, VkDescriptorBufferInfo* bufferInfo, uint32_t count)
 {
 	MVE_ASSERT(setLayout.bindings.count(binding) == 1, "Layout does not contain specified binding");
 
 	auto& bindingDescription = setLayout.bindings[binding];
 
-	MVE_ASSERT(bindingDescription.descriptorCount == 1, "Binding single descriptor info, but binding expects multiple");
+	MVE_ASSERT(bindingDescription.descriptorCount == count, "Binding {} descriptor info, but binding expects {}", count,
+			   bindingDescription.descriptorCount);
 
 	VkWriteDescriptorSet write {};
 	write.sType			  = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 	write.descriptorType  = bindingDescription.descriptorType;
 	write.dstBinding	  = binding;
 	write.pBufferInfo	  = bufferInfo;
-	write.descriptorCount = 1;
+	write.descriptorCount = count;
 
 	writes.push_back(write);
 	return *this;
 }
 
-DescriptorWriter& DescriptorWriter::WriteImage(uint32_t binding, VkDescriptorImageInfo* imageInfo)
+DescriptorWriter& DescriptorWriter::WriteImage(uint32_t binding, VkDescriptorImageInfo* imageInfo, uint32_t count)
 {
 	MVE_ASSERT(setLayout.bindings.count(binding) == 1, "Layout does not contain specified binding");
 
 	auto& bindingDescription = setLayout.bindings[binding];
 
-	MVE_ASSERT(bindingDescription.descriptorCount == 1, "Binding single descriptor info, but binding expects multiple");
+	MVE_ASSERT(bindingDescription.descriptorCount == count, "Binding {} descriptor info, but binding expects {}", count,
+			   bindingDescription.descriptorCount);
 
 	VkWriteDescriptorSet write {};
 	write.sType			  = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 	write.descriptorType  = bindingDescription.descriptorType;
 	write.dstBinding	  = binding;
 	write.pImageInfo	  = imageInfo;
-	write.descriptorCount = 1;
+	write.descriptorCount = count;
 
 	writes.push_back(write);
 	return *this;

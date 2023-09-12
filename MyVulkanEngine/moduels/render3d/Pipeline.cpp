@@ -215,10 +215,11 @@ void GraphicsPipeline::CreateGraphicsPipeline(const std::string& vertFilepath, c
 	assert(error == VK_SUCCESS, "Failed to create graphics pipeline");
 }
 
-ComputePipeline::ComputePipeline(Device& device, const std::string& computeFilepath, VkPipelineLayout pipelineLayout):
+ComputePipeline::ComputePipeline(Device& device, const std::string& computeFilepath, VkPipelineLayout pipelineLayout,
+								 VkSpecializationInfo* specializationInfo):
 	Pipeline(device)
 {
-	CreateComputePipeline(computeFilepath, pipelineLayout);
+	CreateComputePipeline(computeFilepath, pipelineLayout, specializationInfo);
 }
 
 ComputePipeline::~ComputePipeline()
@@ -232,7 +233,8 @@ void ComputePipeline::Bind(VkCommandBuffer commandBuffer)
 	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipeline);
 }
 
-void ComputePipeline::CreateComputePipeline(const std::string& computeFilepath, VkPipelineLayout pipelineLayout)
+void ComputePipeline::CreateComputePipeline(const std::string& computeFilepath, VkPipelineLayout pipelineLayout,
+											VkSpecializationInfo* specializationInfo)
 {
 	auto computeCode = ReadFile(computeFilepath);
 
@@ -247,7 +249,7 @@ void ComputePipeline::CreateComputePipeline(const std::string& computeFilepath, 
 	shaderStage.pName				= "main";
 	shaderStage.flags				= 0;
 	shaderStage.pNext				= nullptr;
-	shaderStage.pSpecializationInfo = nullptr;
+	shaderStage.pSpecializationInfo = specializationInfo;
 
 	VkComputePipelineCreateInfo pipelineInfo {};
 	pipelineInfo.sType	= VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;

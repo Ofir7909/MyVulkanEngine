@@ -5,13 +5,15 @@ namespace MVE
 
 void Render3DModule::OnAttach()
 {
+	GenerateBrdfLut();
+
 	materialSystem = std::make_unique<MaterialSystem>(device);
 	LoadGameObjects();
 
 	globalPool = DescriptorPool::Builder(device)
 					 .SetMaxSets(SwapChain::MAX_FRAMES_IN_FLIGHT)
 					 .AddPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, SwapChain::MAX_FRAMES_IN_FLIGHT)
-					 .AddPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, SwapChain::MAX_FRAMES_IN_FLIGHT * 2)
+					 .AddPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, SwapChain::MAX_FRAMES_IN_FLIGHT * 3)
 					 .Build();
 
 	globalUboBuffers.resize(SwapChain::MAX_FRAMES_IN_FLIGHT);
@@ -26,10 +28,12 @@ void Render3DModule::OnAttach()
 						  .AddBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL_GRAPHICS)
 						  .AddBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_ALL_GRAPHICS)
 						  .AddBinding(2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_ALL_GRAPHICS)
+						  .AddBinding(3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_ALL_GRAPHICS)
 						  .Build();
 
 	auto skyboxImageInfo	 = skyboxCubemap->ImageInfo();
 	auto irradianceImageInfo = skyboxCubemap->IrradianceImageInfo();
+	auto brdfLutImageInfo	 = brdfLut->ImageInfo();
 	globalDescriptorSets.resize(SwapChain::MAX_FRAMES_IN_FLIGHT);
 	for (int i = 0; i < globalDescriptorSets.size(); i++) {
 		auto bufferInfo = globalUboBuffers[i]->DescriptorInfo();
@@ -37,6 +41,7 @@ void Render3DModule::OnAttach()
 			.WriteBuffer(0, &bufferInfo)
 			.WriteImage(1, &skyboxImageInfo)
 			.WriteImage(2, &irradianceImageInfo)
+			.WriteImage(3, &brdfLutImageInfo)
 			.Build(globalDescriptorSets[i]);
 	}
 
@@ -180,8 +185,8 @@ void Render3DModule::LoadGameObjects()
 				auto matId			 = materialSystem->CreateMaterial();
 				auto& mat			 = materialSystem->Get(matId);
 				mat.params.albedo	 = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
-				mat.params.roughness = 1.0 / (n - 1) * i;
-				mat.params.metallic	 = 1.0 / (n - 1) * j;
+				mat.params.roughness = float(i) / (n - 1);
+				mat.params.metallic	 = float(j) / (n - 1);
 
 				auto object					 = GameObject::Create();
 				object.model				 = sphere;
@@ -198,12 +203,64 @@ void Render3DModule::LoadGameObjects()
 		gameObjects.emplace(light.getId(), std::move(light));
 	};
 
-	// skyboxCubemap = std::make_shared<Cubemap>(device, RES_DIR "cubemaps/skies/", "png");
 	skyboxCubemap = std::make_shared<Cubemap>(device);
 	skyboxCubemap->CreateFromHdri(RES_DIR "hdri/bush_restaurant_2k.hdr", 1024);
 	// skyboxCubemap->CreateFromHdri(RES_DIR "hdri/clarens_midday_2k.hdr", 1024);
 
 	// vaseSceneSetup();
 	sphereSceneSetup();
+}
+
+void Render3DModule::GenerateBrdfLut(uint32_t resolution)
+{
+	brdfLut = Texture::Builder(device)
+				  .format(VK_FORMAT_R16G16_SFLOAT)
+				  .addressMode(VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE)
+				  .addUsageFlag(VK_IMAGE_USAGE_STORAGE_BIT)
+				  .layout(VK_IMAGE_LAYOUT_GENERAL)
+				  .addLayer(SolidTextureSource(glm::vec4 {}, resolution, resolution))
+				  .build();
+
+	auto descriptorPool =
+		DescriptorPool::Builder(device).SetMaxSets(1).AddPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1).Build();
+
+	auto setLayout = DescriptorSetLayout::Builder(device)
+						 .AddBinding(0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_COMPUTE_BIT)
+						 .Build();
+
+	auto brdfLutInfo = brdfLut->ImageInfo();
+
+	VkDescriptorSet set;
+	DescriptorWriter(*setLayout, *descriptorPool).WriteImage(0, &brdfLutInfo).Build(set);
+
+	// create pipeline
+	std::unique_ptr<ComputePipeline> pipeline;
+	VkPipelineLayout pipelineLayout;
+
+	std::vector<VkDescriptorSetLayout> descripotorSetLayouts {setLayout->GetDescriptorSetLayout()};
+
+	VkPipelineLayoutCreateInfo pipelineLayoutInfo {};
+	pipelineLayoutInfo.sType				  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+	pipelineLayoutInfo.setLayoutCount		  = descripotorSetLayouts.size();
+	pipelineLayoutInfo.pSetLayouts			  = descripotorSetLayouts.data();
+	pipelineLayoutInfo.pushConstantRangeCount = 0;
+	pipelineLayoutInfo.pPushConstantRanges	  = VK_NULL_HANDLE;
+
+	vkCreatePipelineLayout(device.VulkanDevice(), &pipelineLayoutInfo, nullptr, &pipelineLayout);
+
+	pipeline = std::make_unique<ComputePipeline>(device, SHADER_BINARY_DIR "brdfLutGenerator.comp.spv", pipelineLayout);
+
+	// render
+	auto commandBuffer = device.BeginSingleTimeCommands();
+
+	pipeline->Bind(commandBuffer);
+
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, 0, 1, &set, 0, nullptr);
+
+	const glm::ivec3 shaderLocalSize {32, 32, 1};
+	vkCmdDispatch(commandBuffer, brdfLut->width() / shaderLocalSize.x, brdfLut->width() / shaderLocalSize.y, 1);
+
+	device.EndSingleTimeCommands(commandBuffer);
+	vkDestroyPipelineLayout(device.VulkanDevice(), pipelineLayout, nullptr);
 }
 } // namespace MVE

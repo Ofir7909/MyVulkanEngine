@@ -31,6 +31,7 @@ layout(set=0, binding=0) uniform GlobalUbo{
 
 layout(set=0, binding=1) uniform samplerCube uSkybox;
 layout(set=0, binding=2) uniform samplerCube uIrradiance;
+layout(set=0, binding=3) uniform sampler2D uBrdfLut;
 
 layout(set=1, binding=0) uniform MaterialParams
 {
@@ -95,11 +96,16 @@ float G_direct(float roughness, vec3 N, vec3 L, vec3 V)
 
 // Fresnel-Schlick Function
 // F0 = base reflectivity
-vec3 F(vec3 F0, vec3 V, vec3 H)
+vec3 fresnelSchlick(vec3 F0, vec3 V, vec3 H)
 {
 	float vDotH = max(dot(V, H), 0.0);
 	return F0 + (vec3(1.0) - F0) * pow(1-vDotH, 5);
 }
+
+vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness)
+{
+    return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
+}   
 
 void main()
 {
@@ -107,23 +113,32 @@ void main()
 
 	vec2 scaledUV = vUV * uMaterialParams.uvScale;
 	vec3 albedo = uMaterialParams.albedo.rgb * texture(albedoTexture, scaledUV).rgb;
-	float ao = uMaterialParams.roughness * texture(armTexture, scaledUV).r;
+	float ao = texture(armTexture, scaledUV).r;
 	float roughness = uMaterialParams.roughness * texture(armTexture, scaledUV).g;
 	float metallic = uMaterialParams.metallic * texture(armTexture, scaledUV).b;
 	vec3 normalTexture = texture(normalTexture, scaledUV).xyz * 2.0 - 1.0;
 
 	vec3 N = normalize(vTBN * normalTexture);
 	vec3 V = normalize(cameraPosWorld - vPositionWorld);
-
-	//vec3 ambientLight = uUbo.ambientLightColor.xyz * uUbo.ambientLightColor.w * ao;
-	vec3 ambientLight = texture(uIrradiance, N).rgb * ao;
-	vec3 outLight = ambientLight * albedo;
+	float nDotV = max(dot(N,V), 0.0);
+	vec3 R = reflect(-V, N);
 	
 	vec3 F0 = mix(vec3(0.04), albedo, metallic);
 
-	vec3 R = reflect(-V, N);
+	vec3 F = fresnelSchlickRoughness(nDotV, F0, roughness);
+	vec3 ks = F;
+	vec3 kd = (vec3(1.0) - ks) * (1.0 - metallic); 
+
+	vec3 diffuseAmbient = texture(uIrradiance, N).rgb * albedo;
+
+	vec3 prefilterColor = textureLod(uSkybox, R, roughness * MAX_REFLECTION_LOD).rgb;
+	vec2 envBRDF = texture(uBrdfLut, vec2(nDotV, roughness)).rg;
+	vec3 specularAmbient = prefilterColor * (F * envBRDF.r + envBRDF.g);
+
+	vec3 outLight = (kd * diffuseAmbient + specularAmbient) * ao;
 
 	//for each point light
+	
 	for(int i = 0; i < uUbo.numPointLights; i++)
 	{
 		PointLight light = uUbo.pointLights[i];
@@ -135,7 +150,7 @@ void main()
 		vec3 H = normalize(V + L);
 
 		// PBR
-		vec3 ks = F(F0, V, H);
+		vec3 ks = fresnelSchlick(F0, V, H);
 		vec3 kd = (vec3(1.0) - ks) * (1.0 - metallic);
 
 		vec3 lambert = albedo / PI;
@@ -162,11 +177,11 @@ void main()
 		vec3 H = normalize(V + L);
 
 		// PBR
-		vec3 ks = F(F0, V, H);
+		vec3 ks = fresnelSchlick(F0, V, H);
 		vec3 kd = (vec3(1.0) - ks) * (1.0 - metallic);
 
 		vec3 lambert = albedo / PI;
-		float alpha = roughness * roughness;
+		float alpha = roughness * 6;
 
 		vec3 cookTorranceNom = D(alpha, N, H) * G_direct(roughness, N, L, V) * ks;
 		float cookTorranceDenom = 4.0 * max(dot(V, N), 0.0) * max(dot(L, N), 0.0);
@@ -176,7 +191,8 @@ void main()
 		vec3 BRDF = kd * lambert + cookTorrance;
 		outLight += BRDF * lightColor * attenuation * max(dot(L, N), 0);
 	}
-
+	
+	// Emission
 	outLight += uMaterialParams.emission.xyz + uMaterialParams.emission.w;
 
 	// HDR Mapping

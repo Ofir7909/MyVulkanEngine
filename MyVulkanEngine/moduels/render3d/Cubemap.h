@@ -13,7 +13,7 @@ class Cubemap
 	~Cubemap() {}
 
 	void CreateFromHdri(const std::string& filepath, uint32_t resolution = 512);
-	void GenerateIBL(uint32_t resolution = 32);
+	void GenerateIBL(uint32_t irradianceResolution = 32);
 
 	VkDescriptorImageInfo ImageInfo() const { return texture->ImageInfo(); };
 	VkDescriptorImageInfo IrradianceImageInfo() const { return irradiance->ImageInfo(); };
@@ -21,6 +21,9 @@ class Cubemap
   private:
 	void CreateTexture(const std::string& folderPath, const std::string& extension = "png");
 	void Equirect2Cubemap(const std::string& filepath);
+
+	void GenerateIrradiance(uint32_t resolution);
+	void PrefilterMap();
 
   private:
 	Device& device;

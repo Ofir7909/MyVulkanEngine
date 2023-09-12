@@ -37,6 +37,8 @@ class SolidTextureSource : public TextureSource
 
 class Texture
 {
+	friend class Cubemap;
+
   public:
 	class Builder
 	{
@@ -117,10 +119,12 @@ class Texture
 	VkSampler Sampler() const { return sampler; }
 	VkDescriptorImageInfo ImageInfo() const;
 
-	uint32_t layers() { return layers_; }
-	uint32_t width() { return width_; }
-	uint32_t height() { return height_; }
-	uint32_t bpp() { return bpp_; }
+	uint32_t layers() const { return layers_; }
+	uint32_t width() const { return width_; }
+	uint32_t height() const { return height_; }
+	uint32_t bpp() const { return bpp_; }
+	uint32_t mipMaps() const { return mipMapsLevels_; }
+	VkFormat Format() const { return format_; }
 
   public:
 	void TransitionImageLayout(VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t layerCount,
@@ -133,10 +137,12 @@ class Texture
 	VkImageView imageView;
 	VkSampler sampler;
 	VkImageLayout layout_;
+	VkFormat format_;
 
 	uint32_t layers_;
 	uint32_t width_;
 	uint32_t height_;
 	uint32_t bpp_;
+	uint32_t mipMapsLevels_;
 };
 } // namespace MVE
