@@ -203,12 +203,39 @@ void Render3DModule::LoadGameObjects()
 		gameObjects.emplace(light.getId(), std::move(light));
 	};
 
+	auto cerberusSceneSetup = [&]() {
+		std::shared_ptr model = Model::CreateModelFromFile(device, RES_DIR "models/Cerberus/Cerberus_LP.FBX");
+
+		auto materialId		= materialSystem->CreateMaterial();
+		auto& mat			= materialSystem->Get(materialId);
+		mat.textures.albedo = Texture::Builder(device)
+								  .addLayer(FileTextureSource(RES_DIR "models/Cerberus/Textures/Cerberus_A.tga"))
+								  .build();
+		mat.textures.arm = Texture::Builder(device)
+							   .addLayer(FileTextureSource(RES_DIR "models/Cerberus/Textures/Cerberus_ORM.tga"))
+							   .format(VK_FORMAT_R8G8B8A8_UNORM)
+							   .build();
+		mat.textures.normal = Texture::Builder(device)
+								  .addLayer(FileTextureSource(RES_DIR "models/Cerberus/Textures/Cerberus_N.tga"))
+								  .format(VK_FORMAT_R8G8B8A8_UNORM)
+								  .build();
+
+		auto object					 = GameObject::Create();
+		object.model				 = model;
+		object.transform.translation = {0.0f, 0.0f, 0.0f};
+		object.transform.scale		 = glm::vec3 {0.01f};
+		object.transform.rotation	 = glm::radians(glm::vec3 {90.0f, 90.0f, 0.0f});
+		object.materialId			 = materialId;
+		gameObjects.emplace(object.getId(), std::move(object));
+	};
+
 	skyboxCubemap = std::make_shared<Cubemap>(device);
 	skyboxCubemap->CreateFromHdri(RES_DIR "hdri/bush_restaurant_2k.hdr", 1024);
 	// skyboxCubemap->CreateFromHdri(RES_DIR "hdri/clarens_midday_2k.hdr", 1024);
 
 	// vaseSceneSetup();
-	sphereSceneSetup();
+	// sphereSceneSetup();
+	cerberusSceneSetup();
 }
 
 void Render3DModule::GenerateBrdfLut(uint32_t resolution)
