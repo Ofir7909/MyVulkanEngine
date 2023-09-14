@@ -4,7 +4,10 @@
 #include "Window.h"
 #include "moduels/Module.h"
 
-// #include<vector>
+/// This engine uses a right handed coordinate system.
+/// +Y is up.
+/// +X is right.
+/// -Z is forward.
 
 namespace MVE
 {

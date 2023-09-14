@@ -66,7 +66,7 @@ void Render3DModule::OnUpdate(Timestep dt)
 		static GameObject cameraTransform = GameObject::Create();
 		glm::vec3 move {0.0f};
 		move.x = Input::GetKey(KeyCode::D) - Input::GetKey(KeyCode::A);
-		move.z = Input::GetKey(KeyCode::W) - Input::GetKey(KeyCode::S);
+		move.z = Input::GetKey(KeyCode::S) - Input::GetKey(KeyCode::W);
 		move.y = Input::GetKey(KeyCode::E) - Input::GetKey(KeyCode::Q);
 		if (move != glm::vec3 {0.0f}) {
 			cameraTransform.transform.translation += move * (float)dt;
@@ -224,7 +224,7 @@ void Render3DModule::LoadGameObjects()
 		object.model				 = model;
 		object.transform.translation = {0.0f, 0.0f, 0.0f};
 		object.transform.scale		 = glm::vec3 {0.01f};
-		object.transform.rotation	 = glm::radians(glm::vec3 {90.0f, 90.0f, 0.0f});
+		object.transform.rotation	 = glm::radians(glm::vec3 {-90.0f, 90.0f, 0.0f});
 		object.materialId			 = materialId;
 		gameObjects.emplace(object.getId(), std::move(object));
 	};

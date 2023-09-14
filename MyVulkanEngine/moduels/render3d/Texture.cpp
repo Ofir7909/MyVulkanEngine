@@ -11,7 +11,6 @@ namespace MVE
 FileTextureSource::FileTextureSource(const std::string& filepath)
 {
 	int width, height, channels;
-	stbi_set_flip_vertically_on_load(true);
 	stbi_uc* stbi_pixels = stbi_load(filepath.c_str(), &width, &height, &channels, STBI_rgb_alpha);
 	MVE_ASSERT(stbi_pixels, "Failed to load image from path {}", filepath);
 
@@ -29,7 +28,6 @@ FileTextureSource::FileTextureSource(const std::string& filepath)
 FloatFileTextureSource::FloatFileTextureSource(const std::string& filepath)
 {
 	int width, height, channels;
-	stbi_set_flip_vertically_on_load(true);
 	float* stbi_pixels = stbi_loadf(filepath.c_str(), &width, &height, &channels, STBI_rgb_alpha);
 	MVE_ASSERT(stbi_pixels, "Failed to load image from path {}", filepath);
 
