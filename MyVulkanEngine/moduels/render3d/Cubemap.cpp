@@ -30,16 +30,16 @@ void MVE::Cubemap::CreateFromHdri(const std::string& filepath, uint32_t resoluti
 	Texture::Builder builder(device);
 
 	builder.isCubemap(true)
-		.format(VK_FORMAT_R8G8B8A8_UNORM)
+		.format(VK_FORMAT_R32G32B32A32_SFLOAT)
 		.addressMode(VK_SAMPLER_ADDRESS_MODE_REPEAT)
 		.addUsageFlag(VK_IMAGE_USAGE_STORAGE_BIT)
 		.layout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
 		.useMipmaps(true);
 
-	for (int i = 0; i < 6; i++) { builder.addLayer(SolidTextureSource(glm::vec4 {1.0f}, resolution, resolution)); }
+	for (int i = 0; i < 6; i++) { builder.addLayer(FloatSolidTextureSource(glm::vec4 {1.0f}, resolution, resolution)); }
 
 	texture = builder.build();
-	texture->TransitionImageLayout(VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+	texture->TransitionImageLayout(VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 								   VK_IMAGE_LAYOUT_GENERAL, 6, texture->mipMaps());
 
 	Equirect2Cubemap(filepath);
@@ -49,9 +49,9 @@ void MVE::Cubemap::CreateFromHdri(const std::string& filepath, uint32_t resoluti
 void MVE::Cubemap::Equirect2Cubemap(const std::string& filepath)
 {
 	auto hdri = Texture::Builder(device)
-					.format(VK_FORMAT_R8G8B8A8_SRGB)
+					.format(VK_FORMAT_R32G32B32A32_SFLOAT)
 					.addressMode(VK_SAMPLER_ADDRESS_MODE_REPEAT)
-					.addLayer(FileTextureSource(filepath))
+					.addLayer(FloatFileTextureSource(filepath))
 					.build();
 
 	auto descriptorPool = DescriptorPool::Builder(device)
@@ -113,12 +113,12 @@ void MVE::Cubemap::GenerateIrradiance(uint32_t resolution)
 {
 	Texture::Builder builder(device);
 	builder.isCubemap(true)
-		.format(VK_FORMAT_R8G8B8A8_UNORM)
+		.format(VK_FORMAT_R32G32B32A32_SFLOAT)
 		.addressMode(VK_SAMPLER_ADDRESS_MODE_REPEAT)
 		.addUsageFlag(VK_IMAGE_USAGE_STORAGE_BIT)
 		.layout(VK_IMAGE_LAYOUT_GENERAL);
 
-	for (int i = 0; i < 6; i++) { builder.addLayer(SolidTextureSource(glm::vec4 {1.0f}, resolution, resolution)); }
+	for (int i = 0; i < 6; i++) { builder.addLayer(FloatSolidTextureSource(glm::vec4 {1.0f}, resolution, resolution)); }
 	irradiance = builder.build();
 
 	auto descriptorPool = DescriptorPool::Builder(device)

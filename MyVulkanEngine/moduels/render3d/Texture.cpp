@@ -26,6 +26,24 @@ FileTextureSource::FileTextureSource(const std::string& filepath)
 	stbi_image_free(stbi_pixels);
 }
 
+FloatFileTextureSource::FloatFileTextureSource(const std::string& filepath)
+{
+	int width, height, channels;
+	stbi_set_flip_vertically_on_load(true);
+	float* stbi_pixels = stbi_loadf(filepath.c_str(), &width, &height, &channels, STBI_rgb_alpha);
+	MVE_ASSERT(stbi_pixels, "Failed to load image from path {}", filepath);
+
+	width_	= width;
+	height_ = height;
+	bpp_	= 4 * sizeof(float);
+
+	uint32_t size = width_ * height_ * bpp_;
+	pixels_.reserve(size);
+	pixels_.insert(pixels_.end(), (uint8_t*)stbi_pixels, (uint8_t*)stbi_pixels + size);
+
+	stbi_image_free(stbi_pixels);
+}
+
 SolidTextureSource::SolidTextureSource(glm::vec4 color, uint32_t width, uint32_t height)
 {
 	width_	= width;
@@ -39,6 +57,23 @@ SolidTextureSource::SolidTextureSource(glm::vec4 color, uint32_t width, uint32_t
 			pixels_[(i + j * width) * 4 + 1] = color.g * 255;
 			pixels_[(i + j * width) * 4 + 2] = color.b * 255;
 			pixels_[(i + j * width) * 4 + 3] = color.a * 255;
+		}
+	}
+}
+
+FloatSolidTextureSource::FloatSolidTextureSource(glm::vec4 color, uint32_t width, uint32_t height)
+{
+	width_	= width;
+	height_ = height;
+	bpp_	= 4 * sizeof(float);
+
+	pixels_.resize(width * height * bpp_);
+	for (int i = 0; i < width; i++) {
+		for (int j = 0; j < height; j++) {
+			*(float*)(pixels_.data() + sizeof(float) * ((i + j * width) * 4 + 0)) = color.r;
+			*(float*)(pixels_.data() + sizeof(float) * ((i + j * width) * 4 + 1)) = color.g;
+			*(float*)(pixels_.data() + sizeof(float) * ((i + j * width) * 4 + 2)) = color.b;
+			*(float*)(pixels_.data() + sizeof(float) * ((i + j * width) * 4 + 3)) = color.a;
 		}
 	}
 }

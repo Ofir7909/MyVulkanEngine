@@ -35,6 +35,18 @@ class SolidTextureSource : public TextureSource
 	SolidTextureSource(glm::vec4 color, uint32_t width = 1, uint32_t height = 1);
 };
 
+class FloatFileTextureSource : public TextureSource
+{
+  public:
+	FloatFileTextureSource(const std::string& filepath);
+};
+
+class FloatSolidTextureSource : public TextureSource
+{
+  public:
+	FloatSolidTextureSource(glm::vec4 color, uint32_t width = 1, uint32_t height = 1);
+};
+
 class Texture
 {
 	friend class Cubemap;

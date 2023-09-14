@@ -32,5 +32,10 @@ const float PI = 3.14159265358979;
 
 void main()
 {
-	oColor = vec4(textureLod(uSkybox, vUVW, 0));
+	vec3 color = textureLod(uSkybox, vUVW, 0).xyz;
+
+	// HDR Mapping
+	color = color / (color + vec3(1.0));
+
+	oColor = vec4(color, 1.0);
 }

@@ -14,7 +14,7 @@ const float InvNumSamples = 1.0 / float(NumSamples);
 
 layout(constant_id=0) const int NumMipLevels = 1;
 layout(set=0, binding=0) uniform samplerCube inputTexture;
-layout(set=0, binding=1, rgba8) restrict writeonly uniform imageCube outputTexture[NumMipLevels];
+layout(set=0, binding=1, rgba32f) restrict writeonly uniform imageCube outputTexture[NumMipLevels];
 
 layout(push_constant) uniform PushConstants
 {
