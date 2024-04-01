@@ -1,5 +1,8 @@
 #pragma once
 
+#include <glm/gtc/quaternion.hpp>
+#include <glm/gtx/quaternion.hpp>
+
 // TODO: remove model from game object into a seperate component.
 #include "moduels/render3d/MaterialSystem.h"
 #include "moduels/render3d/Model.h"
@@ -10,7 +13,7 @@ struct TransformComponent
 {
 	glm::vec3 translation {};
 	glm::vec3 scale {1.0f, 1.0f, 1.0f};
-	glm::vec3 rotation {};
+	glm::quat rotation {};
 
 	glm::mat4 Mat4();
 	glm::mat3 NormalMatrix();

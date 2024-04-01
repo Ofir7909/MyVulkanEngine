@@ -173,7 +173,7 @@ void Render3DModule::LoadGameObjects()
 		gameObjects.emplace(object.getId(), std::move(object));
 
 		object					  = GameObject::CreateDirectionalLight(1.5f, {1.0f, 1.0f, 1.0f});
-		object.transform.rotation = {0.7f, 0.0f, -1.5f};
+		object.transform.rotation = glm::quat({0.7f, 0.0f, -1.5f});
 		gameObjects.emplace(object.getId(), std::move(object));
 	};
 
@@ -199,7 +199,7 @@ void Render3DModule::LoadGameObjects()
 
 		// Lights
 		auto light				 = GameObject::CreateDirectionalLight(1.5f, {1.0f, 1.0f, 1.0f});
-		light.transform.rotation = {0.7f, 0.0f, -1.0f};
+		light.transform.rotation = glm::quat({0.7f, 0.0f, -1.0f});
 		gameObjects.emplace(light.getId(), std::move(light));
 	};
 
@@ -224,14 +224,14 @@ void Render3DModule::LoadGameObjects()
 		object.model				 = model;
 		object.transform.translation = {0.0f, 0.0f, 0.0f};
 		object.transform.scale		 = glm::vec3 {0.01f};
-		object.transform.rotation	 = glm::radians(glm::vec3 {-90.0f, 90.0f, 0.0f});
+		object.transform.rotation	 = glm::quat(glm::radians(glm::vec3 {-90.0f, 90.0f, 0.0f}));
 		object.materialId			 = materialId;
 		gameObjects.emplace(object.getId(), std::move(object));
 	};
 
 	skyboxCubemap = std::make_shared<Cubemap>(device);
-	skyboxCubemap->CreateFromHdri(RES_DIR "hdri/bush_restaurant_2k.hdr", 1024);
-	// skyboxCubemap->CreateFromHdri(RES_DIR "hdri/clarens_midday_2k.hdr", 1024);
+	// skyboxCubemap->CreateFromHdri(RES_DIR "hdri/bush_restaurant_2k.hdr", 512);
+	skyboxCubemap->CreateFromHdri(RES_DIR "hdri/clarens_midday_2k.hdr", 512);
 
 	// vaseSceneSetup();
 	// sphereSceneSetup();
