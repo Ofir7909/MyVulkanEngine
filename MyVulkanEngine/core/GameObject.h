@@ -13,10 +13,17 @@ struct TransformComponent
 {
 	glm::vec3 translation {};
 	glm::vec3 scale {1.0f, 1.0f, 1.0f};
-	glm::quat rotation {};
+	glm::quat rotation {1.0f, 0.0f, 0.0f, 0.0f};
 
 	glm::mat4 Mat4();
 	glm::mat3 NormalMatrix();
+
+	glm::vec3 Forward() { return glm::rotate(rotation, glm::vec3 {0.0, 0.0, -1.0}); }
+	glm::vec3 Back() { return -Forward(); }
+	glm::vec3 Right() { return glm::rotate(rotation, glm::vec3 {1.0, 0.0, 0.0}); }
+	glm::vec3 Left() { return -Right(); }
+	glm::vec3 Up() { return glm::rotate(rotation, glm::vec3 {0.0, 1.0, 0.0}); }
+	glm::vec3 Down() { return -Up(); }
 };
 
 struct PointLightComponent

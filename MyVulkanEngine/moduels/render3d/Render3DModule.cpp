@@ -62,15 +62,42 @@ void Render3DModule::OnUpdate(Timestep dt)
 	float aspect = renderer.GetAspectRatio();
 	camera.SetPerspectiveProjection(glm::radians(65.0f), aspect, 0.1f, 100.0f);
 
-	{ // TEMP: Camera controller
-		static GameObject cameraTransform = GameObject::Create();
-		glm::vec3 move {0.0f};
-		move.x = Input::GetKey(KeyCode::D) - Input::GetKey(KeyCode::A);
-		move.z = Input::GetKey(KeyCode::S) - Input::GetKey(KeyCode::W);
-		move.y = Input::GetKey(KeyCode::E) - Input::GetKey(KeyCode::Q);
-		if (move != glm::vec3 {0.0f}) {
-			cameraTransform.transform.translation += move * (float)dt;
-			camera.SetViewTarget(cameraTransform.transform.translation, {0.0f, 0.0f, 0.0f});
+	{ // Temp: New Camera Controller
+		constexpr float mouseSensitivity = 3.0f;
+		constexpr float pitchMinMax		 = glm::half_pi<float>() - 0.01f;
+		static bool firstRun			 = true;
+		static glm::vec3 cameraPosition {0.0, 0.0, 1.0};
+		static float yaw   = 0.0f;
+		static float pitch = 0.0f;
+		static glm::vec2 mousePosPrev;
+		if (firstRun) {
+			glm::quat rotationQuat {glm::vec3 {pitch, yaw, 0.0f}};
+			camera.SetViewDirection(cameraPosition, glm::rotate(rotationQuat, glm::vec3 {0.0, 0.0, -1.0}));
+			firstRun = false;
+		}
+
+		auto mousePosNew = Input::GetMousePosition();
+		auto mouseDelta	 = mousePosNew - mousePosPrev;
+		mousePosPrev	 = mousePosNew;
+
+		// fly Cam Navigation(Right mouse button)
+		if (Input::GetMouseButton(1)) {
+			// Mouse look
+			yaw -= mouseDelta.x * mouseSensitivity * dt;
+			pitch -= mouseDelta.y * mouseSensitivity * dt;
+			MVE_INFO(pitch);
+			pitch = glm::clamp(pitch, -pitchMinMax, pitchMinMax);
+			glm::quat rotationQuat {glm::vec3 {pitch, yaw, 0.0f}};
+
+			// Movement
+			glm::vec2 input		= Input::GetVector(KeyCode::A, KeyCode::D, KeyCode::W, KeyCode::S);
+			float verticalInput = Input::GetAxis(KeyCode::Q, KeyCode::E);
+			glm::vec3 dir		= glm::rotate(rotationQuat, glm::vec3 {input.x, 0.0, input.y});
+			dir.y += verticalInput;
+			cameraPosition += dir * (float)dt;
+
+			auto cameraForward = glm::rotate(rotationQuat, glm::vec3 {0.0, 0.0, -1.0});
+			camera.SetViewDirection(cameraPosition, cameraForward);
 		}
 	}
 
