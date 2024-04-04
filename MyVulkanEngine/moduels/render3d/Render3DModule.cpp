@@ -85,7 +85,6 @@ void Render3DModule::OnUpdate(Timestep dt)
 			// Mouse look
 			yaw -= mouseDelta.x * mouseSensitivity * dt;
 			pitch -= mouseDelta.y * mouseSensitivity * dt;
-			MVE_INFO(pitch);
 			pitch = glm::clamp(pitch, -pitchMinMax, pitchMinMax);
 			glm::quat rotationQuat {glm::vec3 {pitch, yaw, 0.0f}};
 
