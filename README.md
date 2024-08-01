@@ -12,4 +12,3 @@ A real-time physically based renderer using C++ and Vulkan.
 * Directional and point lights
 * Textures
 * Skyboxes: cubemaps and hrdi
-* 
